@@ -1,0 +1,12 @@
+Castle.make
+Makefile
+
+.project/
+
+data/
+
+debug/
+release/
+obj/
+models/
+data/

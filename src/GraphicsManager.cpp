@@ -8,38 +8,14 @@ GraphicsManager::GraphicsManager() { }
 void GraphicsManager::onLoad() {
     shaders.emplace(ShaderType::Standard,
                     unique_ptr<ShaderProgram> (new ShaderProgram("src/shaders/vshader.glsl", nullptr, "src/shaders/fshader.glsl")));
-    notifyObservers(12.5, false);
+    notifyObservers(50, false);
 
-    shaders.emplace(ShaderType::Standard2,
-                    unique_ptr<ShaderProgram> (new ShaderProgram("src/shaders/vshader.glsl", nullptr, "src/shaders/fshader2.glsl")));
-    notifyObservers(12.5, false);
+    objects.emplace(ObjectType::Cube,
+                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/cube.obj")));
+    notifyObservers(50);
 
-    objects.emplace(ObjectType::Red,
-                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard2], "models/czerwone.obj")));
-    notifyObservers(12.5);
 
-    objects.emplace(ObjectType::PokojeKolumny,
-                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/PokojeKolumny.obj")));
-    notifyObservers(12.5);
-
-    objects.emplace(ObjectType::salaTronowa,
-                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/salaTronowa.obj")));
-    notifyObservers(12.5);
-
-    objects.emplace(ObjectType::ScianySufitPodloga,
-                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/ScianySufitPodloga.obj")));
-    notifyObservers(12.5);
-
-    objects.emplace(ObjectType::Okna,
-                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/okna.obj")));
-    notifyObservers(12.5);
-
-    objects.emplace(ObjectType::Doors,
-                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/drzwi.obj")));
-    notifyObservers(12.5);
-
-    textures.emplace(TextureType::Purple,readTextureFromFile("data/textures/purple.tga"));
-    textures.emplace(TextureType::Red,   readTextureFromFile("data/textures/red.tga"));
+    textures.emplace(TextureType::Brick, readTextureFromFile("data/textures/brick.tga"));
 }
 
 GraphicsManager::~GraphicsManager() {

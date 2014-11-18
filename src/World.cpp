@@ -4,10 +4,11 @@
 #include <iostream>
 
 World::World(GraphicsManager *gm) : grMananger(gm) {
-    objects.push_back(Entity{grMananger->getBuffer(ObjectType::Cube),
+    objects.push_back(Entity{grMananger->getBuffer(ObjectType::Teapot),
                              grMananger->getShader(ShaderType::Standard),
-                             0, 0, 5,
-                             grMananger->getTexture(TextureType::Brick)}
+                             0, 0, 0,
+                             grMananger->getTexture(TextureType::Metal),
+                             grMananger->getTexture(TextureType::Sky)}
                      );
     onInit();
 }
@@ -25,6 +26,7 @@ void World::onKeyboardEvent(Event e) {
                 case Keyboard::D: side   =  sensitivity; break;
                 case Keyboard::K: height =  sensitivity; break;
                 case Keyboard::M: height = -sensitivity; break;
+                case Keyboard::X: rotateObjects = !rotateObjects; break;
             }
             break;
         case Event::KeyReleased:
@@ -45,13 +47,13 @@ void World::onMouseEvent(const Vector2<int> &pos) {
 }
 
 void World::onLoop() {
-    /*if (this->rotateObjects) {
+    if (this->rotateObjects) {
         float angle = 1.0f;
         for (auto &x : objects) {
             x.roll(angle);
             angle *= -1;
         }
-    }*/
+    }
 
     float xShift = -camera.getZShift(this->go) + camera.getXShift(this->side),
           yShift = this->height,

@@ -7,7 +7,6 @@
 using namespace std;
 using namespace glm;
 
-#include "LightsMaterials.hpp"
 #include "Camera.hpp"
 #include "ShaderProgram.hpp"
 #include "ObjectBuffers.hpp"

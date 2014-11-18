@@ -8,14 +8,18 @@ GraphicsManager::GraphicsManager() { }
 void GraphicsManager::onLoad() {
     shaders.emplace(ShaderType::Standard,
                     unique_ptr<ShaderProgram> (new ShaderProgram("src/shaders/vshader.glsl", nullptr, "src/shaders/fshader.glsl")));
-    notifyObservers(50, false);
+    notifyObservers(33, false);
 
     objects.emplace(ObjectType::Cube,
                     unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/cube.obj")));
-    notifyObservers(50);
-
+    objects.emplace(ObjectType::Teapot,
+                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/teapot.obj")));
+    notifyObservers(33);
 
     textures.emplace(TextureType::Brick, readTextureFromFile("data/textures/brick.tga"));
+    textures.emplace(TextureType::Metal, readTextureFromFile("data/textures/metal.tga"));
+    textures.emplace(TextureType::Sky,   readTextureFromFile("data/textures/sky.tga"));
+    notifyObservers(34);
 }
 
 GraphicsManager::~GraphicsManager() {

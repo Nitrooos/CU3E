@@ -3,8 +3,6 @@ Makefile
 
 .project/
 
-data/
-
 debug/
 release/
 obj/

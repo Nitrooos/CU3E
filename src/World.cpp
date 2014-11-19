@@ -4,10 +4,9 @@
 #include <iostream>
 
 World::World(GraphicsManager *gm) : grMananger(gm) {
-    objects.push_back(Entity{grMananger->getBuffer(ObjectType::Teapot),
+    objects.push_back(Entity{grMananger->getBuffer(ObjectType::Cube),
                              grMananger->getShader(ShaderType::Standard),
                              0, 0, 0,
-                             grMananger->getTexture(TextureType::Metal),
                              grMananger->getTexture(TextureType::Sky)}
                      );
     onInit();
@@ -61,6 +60,8 @@ void World::onLoop() {
 
     if (xShift || yShift || zShift)
         camera.movEye(xShift, yShift, zShift);
+
+    camera.writeCoordinates();
 }
 
 void World::onRender() {

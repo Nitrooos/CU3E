@@ -36,8 +36,8 @@ class Camera {
         void updateAlfaAngle();
 
         // współrzędne oka kamery oraz punkt widzenia kamery (środek sceny)
-        float x{0.0}, y{0.0}, z{0.0},
-               centerX{0.0}, centerY{0.0}, centerZ{2.0},
+        float x, y, z,
+               centerX{0.0}, centerY{0.0}, centerZ{6.0},
                paramTLeftRight{M_PI_2},
                paramTUpDown{0.0};
         mat4 matrixV, matrixP;

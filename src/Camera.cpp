@@ -39,7 +39,7 @@ void Camera::roll(float cenX, float cenY, float cenZ) {
 
 void Camera::roll(float changeLeftRight, float changeUpDown) {
     //cout << "centerX: " << centerX << "\tcenterY: " << centerY << "\tcenterZ: " << centerZ << "\n";
-
+	cout << "changeLeftRight: " << changeLeftRight << "\t\tchangeUpDown: " << changeUpDown << "\n";
     paramTLeftRight += changeLeftRight;
     paramTUpDown += changeUpDown;
 

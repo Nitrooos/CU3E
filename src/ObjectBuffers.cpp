@@ -1,7 +1,14 @@
 #include "ObjectBuffers.hpp"
+#include "Cube.hpp"
 
-ObjectBuffers::ObjectBuffers(unique_ptr<ShaderProgram> const& sp, const string &filename)
-    : model(filename) {
+ObjectBuffers::ObjectBuffers(unique_ptr<ShaderProgram> const& sp, const string &filename) {
+    model.reset(new OBJLoader(filename));
+    setupVBO();
+    setupVAO(sp);
+}
+
+ObjectBuffers::ObjectBuffers(unique_ptr<ShaderProgram> const& sp, ObjectType type) {
+    model.reset(new OBJLoader(cubeVertices, cubeTexCoords, cubeNormals, cubeVertexCount));
     setupVBO();
     setupVAO(sp);
 }
@@ -19,13 +26,13 @@ GLuint ObjectBuffers::getVAO() const {
 }
 
 int ObjectBuffers::getVertexCount() const {
-    return model.vertexCount;
+    return model->vertexCount;
 }
 
 void ObjectBuffers::setupVBO() {
-    bufVertices  = makeBuffer(model.vertices, sizeof(float)*4);   //Współrzędne wierzchołków
-    bufTexCoords = makeBuffer(model.texture,  sizeof(float)*2);   //Współrzędne teksturowania
-    bufNormals   = makeBuffer(model.normals,  sizeof(float)*4);   //Wektory normalne wierzchołków
+    bufVertices  = makeBuffer(model->vertices, sizeof(float)*4);   //Współrzędne wierzchołków
+    bufTexCoords = makeBuffer(model->texture,  sizeof(float)*2);   //Współrzędne teksturowania
+    bufNormals   = makeBuffer(model->normals,  sizeof(float)*4);   //Wektory normalne wierzchołków
 }
 
 GLuint ObjectBuffers::makeBuffer(void *data, int vertexSize) {
@@ -33,7 +40,7 @@ GLuint ObjectBuffers::makeBuffer(void *data, int vertexSize) {
 
     glGenBuffers(1,&handle);               // Wygeneruj uchwyt na Vertex Buffer Object (VBO), który będzie zawierał tablicę danych
     glBindBuffer(GL_ARRAY_BUFFER,handle);  // Uaktywnij wygenerowany uchwyt VBO
-    glBufferData(GL_ARRAY_BUFFER, model.vertexCount*vertexSize, data, GL_STATIC_DRAW);        // Wgraj tablicę do VBO
+    glBufferData(GL_ARRAY_BUFFER, model->vertexCount*vertexSize, data, GL_STATIC_DRAW);        // Wgraj tablicę do VBO
 
     return handle;
 }

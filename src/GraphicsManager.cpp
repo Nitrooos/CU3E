@@ -11,9 +11,9 @@ void GraphicsManager::onLoad() {
     notifyObservers(33, false);
 
     objects.emplace(ObjectType::Cube,
-                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/cube.obj")));
-    objects.emplace(ObjectType::Teapot,
-                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/teapot.obj")));
+                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], ObjectType::Cube)));
+    /*objects.emplace(ObjectType::Teapot,
+                    unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/teapot.obj")));*/
     notifyObservers(33);
 
     textures.emplace(TextureType::Brick, readTextureFromFile("data/textures/brick.tga"));

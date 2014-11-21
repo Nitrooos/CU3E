@@ -23,6 +23,7 @@ class Entity {
         void setPosition(double x, double y, double z);
         void roll(double rotAngle);
         void setAngle(double angle);
+        void scale(double scale);
 
         float getX() const { return x; }
         float getY() const { return y; }
@@ -34,8 +35,9 @@ class Entity {
         ObjectBuffers *objectBuffers;           // pointer do buforów vbo
         GLuint tex0{0}, tex1{0};                // tekstury obiektu (można użyć max dwóch)
 
-        float x, y, z;                          // wsp obiektu na scenie
-        float angle{0.0};                       // kąt obrotu (początkowo 0.0)
+        float   x, y, z,                        // wsp obiektu na scenie
+                angle{0.0},                     // kąt obrotu (początkowo 0.0)
+                scaleCoeff{1.0};
 
         mat4 matrixM;                           // macierz modelu
 };

@@ -29,7 +29,7 @@ class World {
 
         GraphicsManager *grMananger;            // manager obiektów rysowanych na scenie
         vector<Entity> objects;                 // obiekty należące do świata
-        Camera camera{0.0, 4.3, 7.0};           // kamera, przez którą ogląda świat użytkownik
+        Camera camera{0.0, 0.0, 7.0};           // kamera, przez którą ogląda świat użytkownik
         bool rotateObjects{false};
 
         static constexpr float

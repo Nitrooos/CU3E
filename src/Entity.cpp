@@ -68,7 +68,13 @@ void Entity::setAngle(double angle) {
     updateMatrixM();
 }
 
+void Entity::scale(double scale) {
+    this->scaleCoeff = scale;
+    updateMatrixM();
+}
+
 void Entity::updateMatrixM() {
-    matrixM = translate(mat4(1.0f), vec3(x, y, z));
-    matrixM = rotate(matrixM, angle, vec3(0.3f, 1.0f, 0.0f));
+    matrixM = glm::scale(mat4(1.0f), vec3(scaleCoeff, scaleCoeff, scaleCoeff));
+    matrixM = translate(matrixM, vec3(x, y, z));
+    matrixM = rotate(matrixM, angle, vec3(1.0f, 0.0f, 1.0f));
 }

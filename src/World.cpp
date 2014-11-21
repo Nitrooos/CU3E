@@ -7,7 +7,7 @@ World::World(GraphicsManager *gm) : grMananger(gm) {
     objects.push_back(Entity{grMananger->getBuffer(ObjectType::Cube),
                              grMananger->getShader(ShaderType::Standard),
                              0, 0, 0,
-                             grMananger->getTexture(TextureType::Sky)}
+                             grMananger->getTexture(TextureType::Brick)}
                      );
     onInit();
 }
@@ -55,13 +55,18 @@ void World::onLoop() {
     }
 
     float xShift = -camera.getZShift(this->go) + camera.getXShift(this->side),
-          yShift = this->height,
+          yShift =  this->height,
           zShift =  camera.getXShift(this->go) + camera.getZShift(this->side);
+
+    static float arg = 0.0f;
+    float scale = 1.5*abs(sin(arg)) + 0.5;
+    objects.back().scale(scale);
+    arg += 0.01f;
 
     if (xShift || yShift || zShift)
         camera.movEye(xShift, yShift, zShift);
 
-    camera.writeCoordinates();
+    //camera.writeCoordinates();
 }
 
 void World::onRender() {

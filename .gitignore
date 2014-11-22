@@ -6,3 +6,4 @@ Makefile
 debug/
 release/
 obj/
+data/textures/other

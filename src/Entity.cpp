@@ -76,5 +76,5 @@ void Entity::scale(double scale) {
 void Entity::updateMatrixM() {
     matrixM = glm::scale(mat4(1.0f), vec3(scaleCoeff, scaleCoeff, scaleCoeff));
     matrixM = translate(matrixM, vec3(x, y, z));
-    matrixM = rotate(matrixM, angle, vec3(1.0f, 0.0f, 1.0f));
+    matrixM = rotate(matrixM, angle, vec3(0.5f, 1.0f, 0.0f));
 }

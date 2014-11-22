@@ -8,7 +8,7 @@ ObjectBuffers::ObjectBuffers(unique_ptr<ShaderProgram> const& sp, const string &
 }
 
 ObjectBuffers::ObjectBuffers(unique_ptr<ShaderProgram> const& sp, ObjectType type) {
-    model.reset(new OBJLoader(cubeVertices, cubeTexCoords, cubeNormals, cubeVertexCount));
+    model.reset(new OBJLoader(cubeVertices, cubeTexCoordsDice, cubeNormals, cubeVertexCount));
     setupVBO();
     setupVAO(sp);
 }

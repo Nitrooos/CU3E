@@ -19,6 +19,7 @@ void GraphicsManager::onLoad() {
     textures.emplace(TextureType::Brick, readTextureFromFile("data/textures/brick.tga"));
     textures.emplace(TextureType::Metal, readTextureFromFile("data/textures/metal.tga"));
     textures.emplace(TextureType::Sky,   readTextureFromFile("data/textures/sky.tga"));
+    textures.emplace(TextureType::Dice,  readTextureFromFile("data/textures/dice.tga"));
     notifyObservers(34);
 }
 

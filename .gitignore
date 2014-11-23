@@ -9,3 +9,5 @@ obj/
 data/textures/other
 
 Capturing/
+
+*.jpg

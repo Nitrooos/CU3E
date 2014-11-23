@@ -7,13 +7,15 @@
 using namespace std;
 using namespace glm;
 
+#include "Types.hpp"
 #include "Camera.hpp"
+#include "GraphicsManager.hpp"
 #include "ShaderProgram.hpp"
 #include "ObjectBuffers.hpp"
 
 class Entity {
     public:
-        Entity(ObjectBuffers *ob, ShaderProgram *sp, double x, double y, double z, GLuint tex0, GLuint tex1 = 0);
+        Entity(ObjectBuffers *ob, ShaderProgram *sp, GraphicsManager *gr, double x, double y, double z, TextureType tex0);
         virtual ~Entity();
 
         void onLoop();
@@ -24,6 +26,8 @@ class Entity {
         void roll(double rotAngle);
         void setAngle(double angle);
         void scale(double scale);
+        void setTexture(int num, TextureType tex);
+        TextureType getTexture(int num) const;
 
         float getX() const { return x; }
         float getY() const { return y; }
@@ -33,7 +37,8 @@ class Entity {
 
         ShaderProgram *shaderProgram;           // pointer do programu cieniującego
         ObjectBuffers *objectBuffers;           // pointer do buforów vbo
-        GLuint tex0{0}, tex1{0};                // tekstury obiektu (można użyć max dwóch)
+        GraphicsManager *grMan;
+        TextureType tex0, tex1;		            // tekstury obiektu (można użyć max dwóch)
 
         float   x, y, z,                        // wsp obiektu na scenie
                 angle{0.0},                     // kąt obrotu (początkowo 0.0)

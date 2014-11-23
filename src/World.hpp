@@ -26,6 +26,7 @@ class World {
     private:
         // akt stworzenia
         void onInit();
+        void nextTexture();
 
         GraphicsManager *grMananger;            // manager obiektów rysowanych na scenie
         vector<Entity> objects;                 // obiekty należące do świata

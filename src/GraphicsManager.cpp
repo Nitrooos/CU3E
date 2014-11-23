@@ -16,10 +16,9 @@ void GraphicsManager::onLoad() {
                     unique_ptr<ObjectBuffers> (new ObjectBuffers(shaders[ShaderType::Standard], "models/teapot.obj")));*/
     notifyObservers(33);
 
-    textures.emplace(TextureType::Brick, readTextureFromFile("data/textures/brick.tga"));
-    textures.emplace(TextureType::Metal, readTextureFromFile("data/textures/metal.tga"));
-    textures.emplace(TextureType::Sky,   readTextureFromFile("data/textures/sky.tga"));
-    textures.emplace(TextureType::Dice,  readTextureFromFile("data/textures/dice.tga"));
+    textures.emplace(TextureType::Dice,  	readTextureFromFile("data/textures/dice.tga"));
+    textures.emplace(TextureType::Pumpkin,  readTextureFromFile("data/textures/pumpkin.tga"));
+    textures.emplace(TextureType::TNT,  	readTextureFromFile("data/textures/tnt.tga"));
     notifyObservers(34);
 }
 
@@ -39,6 +38,10 @@ ObjectBuffers *GraphicsManager::getBuffer(ObjectType id) {
 
 GLuint GraphicsManager::getTexture(TextureType id) {
     return textures[id];
+}
+
+map<TextureType, GLuint> const& GraphicsManager::getTextures() const {
+	return textures;
 }
 
 GLuint GraphicsManager::readTextureFromFile(const string &filename) {

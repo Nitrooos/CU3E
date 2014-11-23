@@ -17,6 +17,7 @@ class GraphicsManager : public Observable {
 
         ShaderProgram *getShader(ShaderType id);
         ObjectBuffers *getBuffer(ObjectType id);
+        map<TextureType, GLuint> const& getTextures() const;
         GLuint getTexture(TextureType id);
     private:
         GLuint readTextureFromFile(const string &filename);

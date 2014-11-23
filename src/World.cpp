@@ -6,9 +6,9 @@
 World::World(GraphicsManager *gm) : grMananger(gm) {
     objects.push_back(Entity{grMananger->getBuffer(ObjectType::Cube),
                              grMananger->getShader(ShaderType::Standard),
+                             grMananger,
                              0, 0, 0,
-                             grMananger->getTexture(TextureType::Dice)}
-                     );
+                             TextureType::Dice});
     onInit();
 }
 
@@ -26,6 +26,7 @@ void World::onKeyboardEvent(Event e) {
                 case Keyboard::K: height =  sensitivity; break;
                 case Keyboard::M: height = -sensitivity; break;
                 case Keyboard::X: rotateObjects = !rotateObjects; break;
+                case Keyboard::C: nextTexture(); break;
             }
             break;
         case Event::KeyReleased:
@@ -77,4 +78,14 @@ void World::onRender() {
 
 void World::onInit() {
     glEnable(GL_DEPTH_TEST);
+}
+
+void World::nextTexture() {
+	for (auto &x : objects) {
+		auto iter = next(grMananger->getTextures().find(x.getTexture(0)));
+		if (iter != grMananger->getTextures().end())
+			x.setTexture(0, iter->first);
+		else
+			x.setTexture(0, grMananger->getTextures().begin()->first);
+	}
 }

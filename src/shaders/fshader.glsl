@@ -13,8 +13,8 @@ in vec2 iTexCoord2;
 void main(void) {
 
     //Parametry modelu oswietlenia - normalnie powinny byc przekazane jako zmienne jednorodne, ale dla uproszczenia sa zakodowane na twardo
-    vec4 La=vec4(0,0,0,0);                  //Kolor swiatla otoczenia
-    vec4 Ma=vec4(0,0,0,0);                  //Kolor materialu dla swiatla otoczenia
+    vec4 La=vec4(1,1,1,1);                  //Kolor swiatla otoczenia
+    vec4 Ma=vec4(0.1,0.1,0.1,1);                  //Kolor materialu dla swiatla otoczenia
 
     vec4 Ld=vec4(1,1,1,1);                  //Kolor swiatla rozpraszanego
 
@@ -23,7 +23,7 @@ void main(void) {
 
     vec4 Ls=vec4(1,1,1,1);                  //Kolor swiatla odbijanego
     vec4 Ms=vec4(1,1,1,1);                  //Kolor materialu dla swiatla odbijanego
-    float shininess=300;                         //Polyskliwosc materialu
+    float shininess=500;                         //Polyskliwosc materialu
 
     //Wektory potrzebne do obliczenia modelu oswietlenia
     vec4 ml=normalize(l);
@@ -35,5 +35,5 @@ void main(void) {
     float nl=max(dot(ml,mn),0);
     float rv=pow(max(dot(mr,mv),0),shininess);
 
-    pixelColor=La*Ma+Ld*Md*vec4(nl,nl,nl,1)+Ls*Ms*vec4(rv,rv,rv,0);
+    pixelColor=La*Ma*Md+Ld*Md*vec4(nl,nl,nl,1)+Ls*Ms*vec4(rv,rv,rv,0);
 }

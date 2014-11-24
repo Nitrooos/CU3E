@@ -14,16 +14,17 @@ void main(void) {
 
     //Parametry modelu oswietlenia - normalnie powinny byc przekazane jako zmienne jednorodne, ale dla uproszczenia sa zakodowane na twardo
     vec4 La=vec4(1,1,1,1);                  //Kolor swiatla otoczenia
-    vec4 Ma=vec4(0.1,0.1,0.1,1);                  //Kolor materialu dla swiatla otoczenia
+    vec4 Ma=vec4(0.1,0.1,0.1,0);                  //Kolor materialu dla swiatla otoczenia
 
     vec4 Ld=vec4(1,1,1,1);                  //Kolor swiatla rozpraszanego
 
     //Kolor materialu dla swiatla rozpraszanego
-    vec4 Md=(3*texture(textureMap0, iTexCoord) + texture(textureMap1, iTexCoord2))/4;
+    //vec4 Md=(3*texture(textureMap0, iTexCoord) + texture(textureMap1, iTexCoord2))/4;
+    vec4 Md = texture(textureMap0, iTexCoord);
 
     vec4 Ls=vec4(1,1,1,1);                  //Kolor swiatla odbijanego
     vec4 Ms=vec4(1,1,1,1);                  //Kolor materialu dla swiatla odbijanego
-    float shininess=500;                         //Polyskliwosc materialu
+    float shininess=300;                         //Polyskliwosc materialu
 
     //Wektory potrzebne do obliczenia modelu oswietlenia
     vec4 ml=normalize(l);

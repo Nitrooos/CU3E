@@ -17,8 +17,10 @@ void GraphicsManager::onLoad() {
     notifyObservers(33);
 
     textures.emplace(TextureType::Dice,  	readTextureFromFile("data/textures/dice.tga"));
+    textures.emplace(TextureType::Crate,  	readTextureFromFile("data/textures/crate.tga"));
     textures.emplace(TextureType::Pumpkin,  readTextureFromFile("data/textures/pumpkin.tga"));
     textures.emplace(TextureType::TNT,  	readTextureFromFile("data/textures/tnt.tga"));
+    textures.emplace(TextureType::Lava,  	readTextureFromFile("data/textures/lava.tga"));
     notifyObservers(34);
 }
 

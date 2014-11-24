@@ -3,6 +3,6 @@
 
 enum class ObjectType  : char { Cube, Teapot };
 enum class ShaderType  : char { Standard };
-enum class TextureType : char { None, Dice, Pumpkin, TNT };
+enum class TextureType : char { None, Dice, Crate, Pumpkin, TNT, Lava };
 
 #endif

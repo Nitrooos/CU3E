@@ -18,6 +18,7 @@ void GraphicsManager::onLoad() {
 
     textures.emplace(TextureType::Dice,  	readTextureFromFile("data/textures/dice.tga"));
     textures.emplace(TextureType::Crate,  	readTextureFromFile("data/textures/crate.tga"));
+    textures.emplace(TextureType::Metal,  	readTextureFromFile("data/textures/metal.tga"));
     textures.emplace(TextureType::Pumpkin,  readTextureFromFile("data/textures/pumpkin.tga"));
     textures.emplace(TextureType::TNT,  	readTextureFromFile("data/textures/tnt.tga"));
     textures.emplace(TextureType::Lava,  	readTextureFromFile("data/textures/lava.tga"));

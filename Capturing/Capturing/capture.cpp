@@ -1,18 +1,21 @@
 #include "capture.h"
 
 #define IMG_DIR "output\\image_"
-#define FILTERS 8
-#define AREA 100000
+#define FILTERS 9
+#define AREA 20000			//Tolerance for vertices detection
+#define R_MUL 1.1			//Region of detection radious multiplier
+#define FOCAL_LENGTH 1000	//Focal length
+#define CUBE_SIZE 10		//Cube model size
 
 //Parameters default values
-              // red  gre  dbl  lbl  bla   bro  yel  pur CUB
-int iLowH[]  = { 159,  43, 105,  92,  98, 109,  21, 159,   0 };	//0
-int iHighH[] = { 179,  77, 115, 108, 179, 179,  29, 173, 179 };	//179
-int iLowS[]  = { 124,  70, 108, 128,  11,  39, 127,   0,   0 };	//0
-int iHighS[] = { 255, 255, 204, 255,  57,  83, 255, 213, 255 };	//255
-int iLowV[]  = {  85,   0,  72,  77,  25,  44, 123,  72,   0 };	//0
-int iHighV[] = { 255, 255, 255, 187,  71, 114, 255, 255, 255 };	//255
-string names[] = { "RED", "GRE", "DBL", "LBL", "BLA", "BRO", "YEL", "PUR" };
+              // CUB  wht  yel  ora  red  lbl  gre  dbl  blk 
+int iLowH[]  = {   0,   0,   0,   0,   0,   0,   0,   0,   0 };	//0
+int iHighH[] = { 179, 179, 179, 179, 179, 179, 179, 179, 179 };	//179
+int iLowS[]  = {   0,   0,   0,   0,   0,   0,   0,   0,   0 };	//0
+int iHighS[] = { 255, 255, 255, 255, 255, 255, 255, 255, 255 };	//255
+int iLowV[]  = {   0,   0,   0,   0,   0,   0,   0,   0,   0 };	//0
+int iHighV[] = { 255, 255, 255, 255, 255, 255, 255, 255, 255 };	//255
+string names[] = { "CUB", "WHT", "YEL", "ORA", "RED", "LBL", "GRE", "DBL", "BLK" };
 
 int oldVal = 0;		//Variable to store ID of previously edited filter
 Mat mask;			//Mask to set the region of detection
@@ -28,6 +31,7 @@ int errorFunc(String text, int value){
 	cout << endl << "ERROR: " << text << endl;
 	cout << "Press ENTER to exit." << endl;
 	getchar();
+	cout << "------------------------------------------------------------" << endl;
 	return value;
 }
 
@@ -71,7 +75,7 @@ void saveConfig(){
 //Initialization of capture
 int initCap(){
 	//Threads to parallel detection of vertices
-	omp_set_num_threads(8);
+	omp_set_num_threads(FILTERS-1);
 
 	//Load config
 	loadConfig();
@@ -85,9 +89,8 @@ int initCap(){
 	cWidth = cap->get(CV_CAP_PROP_FRAME_WIDTH);
 	cHeight = cap->get(CV_CAP_PROP_FRAME_HEIGHT);
 
-	//Create mask to select the region of detection
+	//Create initial mask to select the region of detection
 	mask = Mat::zeros(Size((int)cWidth, (int)cHeight), CV_8UC1);
-	rectangle(mask, Point((int)(cWidth*0.0), (int)(cHeight*0.0)), Point((int)(cWidth*1.0), (int)(cHeight*1.0)), Scalar(255, 255, 255), -1);
 	return 0;
 }
 
@@ -99,24 +102,24 @@ int destCap(){
 }
 
 //What function call from this modules
-int capture(int arg, void* data){
+int capture(int arg, CvMatr32f rotation, CvMatr32f translation){
 	switch (arg){
 	case 1:
-		return detecting();			//<requires initCap()>
+		return detecting();					//<requires initCap()>
 	case 2:
-		return detectOnce((Vec3d*)data);		//<requires initCap()>
+		return detectOnce(rotation, translation);	//<requires initCap()>
 	case 3:
-		return initCap();
+		return initCap();					//<VIDEO INIT>
 	case 4:
-		return initialCalibration();//<requires initCap()>
+		return initialCalibration();		//<requires initCap()>
 	case 5:
-		return destCap();			//<requires initCap()>
+		return destCap();					//<VIDEO FINA>
 	case 6:
 		return imgProcess();
 	case 7:
-		return filterImages();
+		return filtersOnImages();
 	case 8:
-		return takePictures();		//<requires initCap()>
+		return takePictures();				//<requires initCap()>
 	default:
 		return errorFunc("Unrecognized argument!", -1);
 	}
@@ -145,7 +148,7 @@ void edit(int value, void* userdata){
 void configWindow(int *filter, int *iLowHt, int *iHighHt, int *iLowSt, int *iHighSt, int *iLowVt, int *iHighVt){
 	namedWindow("Configure", CV_WINDOW_NORMAL);
 	CvTrackbarCallback onChange = (CvTrackbarCallback)edit;
-	cvCreateTrackbar("FILTER", "Configure", filter, FILTERS - 1, onChange);
+	cvCreateTrackbar("FILTER", "Configure", filter, FILTERS-1, onChange);
 	cvCreateTrackbar("LowH", "Configure", iLowHt, 179); //Hue (0 - 179)
 	cvCreateTrackbar("HighH", "Configure", iHighHt, 179);
 	cvCreateTrackbar("LowS", "Configure", iLowSt, 255); //Saturation (0 - 255)
@@ -158,27 +161,47 @@ void configWindow(int *filter, int *iLowHt, int *iHighHt, int *iLowSt, int *iHig
 
 //VERTICES DETECTION
 int detecting(){
-	omp_set_num_threads(8);
-
-	int i;
-	Mat imgOriginal, imgHSV, imgThresholded, imgToShow;
-	Mat imgThresh[FILTERS];
+	unsigned i;
+	float radius, mRadius;
+	double dM01, dM10, dArea;
 	double posX[FILTERS];
 	double posY[FILTERS];
-	bool bSuccess;
-
+	Point2f center, mCenter;
+	Moments oMoments;
+	Mat imgOriginal, imgHSV, imgThresholded, imgToShow;
+	Mat imgThresh[FILTERS];
+	vector<vector<Point>> contours;
+	
+	cout << "CONTINUOUS DETECTION." << endl;
 	cout << "Press ENTER to exit. <focused on video window>" << endl;
-	cout << "------------------------------------------------------------" << endl;
 	while (true){
-		bSuccess = cap->read(imgOriginal);
-		if (!bSuccess){
+		if (!cap->read(imgOriginal)){
 			return errorFunc("Cannot read a frame from video stream of Cam 0!", -1);
 		}
 		cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
-		imgThresholded = Mat::zeros(Size((int)cWidth, (int)cHeight), CV_8UC1);
+		//Create mask
+		inRange(imgHSV, Scalar(iLowH[0], iLowS[0], iLowV[0]), Scalar(iHighH[0], iHighS[0], iHighV[0]), imgThresh[0]);
+		erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		if (contours.size() > 0){
+			mRadius = 0;
+			for (i = 0; i < contours.size(); i++){
+				minEnclosingCircle(Mat(contours[i]), center, radius);
+				if (radius > mRadius){
+					mRadius = radius;
+					mCenter = center;
+				}
+			}
+			mask = Mat::zeros(mask.size(), CV_8UC1);
+			circle(mask, mCenter, (int)(mRadius*R_MUL), Scalar(255, 255, 255), -1);
+		}
+
+		imgThresholded = Mat::zeros(mask.size(), CV_8UC1);
 		imgToShow = imgOriginal.clone();
 		#pragma omp parallel for schedule(static, 1)
-		for (i = 0; i < FILTERS; i++){
+		for (i = 1; i < FILTERS; i++){
 			inRange(imgHSV, Scalar(iLowH[i], iLowS[i], iLowV[i]), Scalar(iHighH[i], iHighS[i], iHighV[i]), imgThresh[i]);
 			bitwise_and(imgThresh[i], mask, imgThresh[i]);
 
@@ -189,10 +212,10 @@ int detecting(){
 			dilate(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
 			erode(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
 
-			Moments oMoments = moments(imgThresh[i]);
-			double dM01 = oMoments.m01;
-			double dM10 = oMoments.m10;
-			double dArea = oMoments.m00;
+			oMoments = moments(imgThresh[i]);
+			dM01 = oMoments.m01;
+			dM10 = oMoments.m10;
+			dArea = oMoments.m00;
 			if (dArea > AREA){
 				posX[i] = dM10 / dArea;
 				posY[i] = dM01 / dArea;
@@ -203,7 +226,7 @@ int detecting(){
 				}
 			}
 		}
-		for (i = 0; i < FILTERS; i++){
+		for (i = 1; i < FILTERS; i++){
 			bitwise_or(imgThresholded, imgThresh[i], imgThresholded);
 		}
 
@@ -211,8 +234,10 @@ int detecting(){
 		imshow("Thresholded", imgThresholded);
 		imshow("VIDEO STREAM", imgToShow);
 
-		if (waitKey(20) == 13){		//ENTER - exit
-			cout << "Detecting END.\n" << endl;
+		if (waitKey(20) == 13){		//ENTER - close
+			destroyAllWindows();
+			cout << "ENTER: closing." << endl;
+			cout << "------------------------------------------------------------" << endl;
 			break;
 		}
 	}
@@ -220,22 +245,58 @@ int detecting(){
 }
 
 //VERTICES SINGLE DETECTION
-int detectOnce(Vec3d *vec){
-	static int i;
-	static Mat imgOriginal, imgHSV, imgThresholded, imgToShow;
-	static Mat imgThresh[FILTERS];
-	static double posX[FILTERS];
-	static double posY[FILTERS];
-	static bool bSuccess;
-	bSuccess = cap->read(imgOriginal);
-	if (!bSuccess){
+int detectOnce(CvMatr32f rotation, CvMatr32f translation){
+	static unsigned i;
+	static bool vert[FILTERS];
+	static float radius, mRadius;
+	static double dM01, dM10, dArea, posX[FILTERS], posY[FILTERS];
+	static Point2f center, mCenter;
+	static Moments oMoments;
+	//static Mat imgToShow;
+	static Mat imgOriginal, imgHSV, imgThresh[FILTERS];
+	static vector<vector<Point>> contours;
+
+	static vector<CvPoint2D32f> srcImagePoints;
+	static vector<CvPoint3D32f> modelPoints;
+	static CvPOSITObject* positObject;
+	static double model[8][3] = {
+		{ 0.0f, 0.0f, 0.0f },	//White
+		{ 1.0f, 1.0f, 0.0f },	//Yellow
+		{ 0.0f, 1.0f, 0.0f },	//Orange
+		{ 1.0f, 0.0f, 1.0f },	//Red
+		{ 0.0f, 1.0f, 1.0f },	//Light Blue
+		{ 0.0f, 0.0f, 1.0f },	//Grey
+		{ 1.0f, 0.0f, 0.0f },	//Dark Blue
+		{ 1.0f, 1.0f, 1.0f }	//Black
+	};
+	static CvTermCriteria criteria = cvTermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 100, 1.0e-4f);
+
+	if (!cap->read(imgOriginal)){
 		return errorFunc("Cannot read a frame from video stream of Cam 0!", -1);
 	}
 	cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
-	imgThresholded = Mat::zeros(Size((int)cWidth, (int)cHeight), CV_8UC1);
-	imgToShow = imgOriginal.clone();
+	//Create mask
+	inRange(imgHSV, Scalar(iLowH[0], iLowS[0], iLowV[0]), Scalar(iHighH[0], iHighS[0], iHighV[0]), imgThresh[0]);
+	erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+	dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+	dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+	erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+	findContours(imgThresh[0], contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+	if (contours.size() > 0){
+		mRadius = 0;
+		for (i = 0; i < contours.size(); i++){
+			minEnclosingCircle(Mat(contours[i]), center, radius);
+			if (radius > mRadius){
+				mRadius = radius;
+				mCenter = center;
+			}
+		}
+		mask = Mat::zeros(mask.size(), CV_8UC1);
+		circle(mask, mCenter, (int)(mRadius*R_MUL), Scalar(255, 255, 255), -1);
+	}
+	//imgToShow = imgOriginal.clone();		//DELETE IN FINAL VERSION
 	#pragma omp parallel for schedule(static, 1)
-	for (i = 0; i < FILTERS; i++){
+	for (i = 1; i < FILTERS; i++){
 		inRange(imgHSV, Scalar(iLowH[i], iLowS[i], iLowV[i]), Scalar(iHighH[i], iHighS[i], iHighV[i]), imgThresh[i]);
 		bitwise_and(imgThresh[i], mask, imgThresh[i]);
 
@@ -246,37 +307,47 @@ int detectOnce(Vec3d *vec){
 		dilate(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
 		erode(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
 
-		Moments oMoments = moments(imgThresh[i]);
-		double dM01 = oMoments.m01;
-		double dM10 = oMoments.m10;
-		double dArea = oMoments.m00;
+		oMoments = moments(imgThresh[i]);
+		dM01 = oMoments.m01;
+		dM10 = oMoments.m10;
+		dArea = oMoments.m00;
+		vert[i] = false;
 		if (dArea > AREA){
 			posX[i] = dM10 / dArea;
 			posY[i] = dM01 / dArea;
-			#pragma omp critical
-			{
-				circle(imgToShow, Point((int)posX[i], (int)posY[i]), 10, Scalar(0, 255, 0), -1);
-				putText(imgToShow, names[i], Point((int)posX[i] - 8, (int)posY[i] + 2), CV_FONT_HERSHEY_SIMPLEX, 0.25, Scalar(0, 0, 0), 1);
-			}
+			vert[i] = true;
+			//#pragma omp critical			//DELETE IN FINAL VERSION
+			//{								//DELETE IN FINAL VERSION
+			//	circle(imgToShow, Point((int)posX[i], (int)posY[i]), 10, Scalar(0, 255, 0), -1);
+			//	putText(imgToShow, names[i], Point((int)posX[i] - 8, (int)posY[i] + 2), CV_FONT_HERSHEY_SIMPLEX, 0.25, Scalar(0, 0, 0), 1);
+			//}								//DELETE IN FINAL VERSION
 		}
 	}
-	for (i = 0; i < FILTERS; i++){
-		bitwise_or(imgThresholded, imgThresh[i], imgThresholded);
+	
+	modelPoints.clear();
+	srcImagePoints.clear();
+	for (i = 1; i < FILTERS; i++){
+		if (vert[i]){
+			//Create the model points
+			modelPoints.push_back(cvPoint3D32f(model[i][0], model[i][1], model[i][2]));
+			//Create the image points 
+			srcImagePoints.push_back(cvPoint2D32f(posX[i], posY[i]));
+		}
 	}
-	imshow("Thresholded", imgThresholded);
-	imshow("VIDEO STREAM", imgToShow);
 
-	//Angles get (POSIT)
-	*vec = Vec3d((int)posX[0], (int)posY[0], 0);
-	return 0;	//return wektor k¹tów obrotów wokó³ osi (x, y, z)
+	if (modelPoints.size() > 3){
+		//Create the POSIT object with the model points
+		positObject = cvCreatePOSITObject(&modelPoints[0], (int)modelPoints.size());
+		//Estimate the pose
+		cvPOSIT(positObject, &srcImagePoints[0], FOCAL_LENGTH, criteria, rotation, translation);
+	}
+
+	imshow("VIDEO STREAM", imgOriginal);		//DELETE IN FINAL VERSION
+	return 0;
 }
 
 //Filters video calibration
 int initialCalibration(){
-	if (!cap->isOpened()){
-		return errorFunc("Cam 0 was not initialized!", -1);
-	}
-
 	//Trackbar initial values
 	int filter = 0;
 	int iLowHt = iLowH[0];
@@ -290,24 +361,46 @@ int initialCalibration(){
 	configWindow(&filter, &iLowHt, &iHighHt, &iLowSt, &iHighSt, &iLowVt, &iHighVt);
 
 	//Initalizing variables for while" loop
+	int key;
+	unsigned i;
+	float radius, mRadius;
+	double posX, posY, dM01, dM10, dArea;
+	Point2f center, mCenter;
 	Mat imgOriginal, imgHSV, imgThresholded;
 	Moments oMoments;
-	int key;
-	double posX, posY, dM01, dM10, dArea;
-	bool bSuccess;
-	
-	//Configuring filters parameters
+	vector<vector<Point>> contours;
+
 	cout << "CONFIGURE PARAMETERS." << endl;
-	cout << "To confirm and save, press ENTER. <focused on video window>" << endl;
-	cout << "To discard changes, press ESC. <focused on video window>" << endl;
+	cout << "Press ENTER to confirm and save. <focused on video window>" << endl;
+	cout << "Press ESC to discard changes. <focused on video window>" << endl;
 	while (true){
-		bSuccess = cap->read(imgOriginal);
-		if (!bSuccess){
+		if (!cap->read(imgOriginal)){
 			return errorFunc("Cannot read a frame from video stream of Cam 0!", -1);
 		}
 		cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
+		
+		//Create mask
+		inRange(imgHSV, Scalar(iLowH[0], iLowS[0], iLowV[0]), Scalar(iHighH[0], iHighS[0], iHighV[0]), imgThresholded);
+		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		findContours(imgThresholded, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+		if (contours.size() > 0){
+			mRadius = 0;
+			for (i = 0; i < contours.size(); i++){
+				minEnclosingCircle(Mat(contours[i]), center, radius);
+				if (radius > mRadius){
+					mRadius = radius;
+					mCenter = center;
+				}
+			}
+			mask = Mat::zeros(mask.size(), CV_8UC1);
+			circle(mask, mCenter, (int)(mRadius*R_MUL), Scalar(255, 255, 255), -1);
+		}
+		
 		inRange(imgHSV, Scalar(iLowHt, iLowSt, iLowVt), Scalar(iHighHt, iHighSt, iHighVt), imgThresholded);
-
+		if (filter) bitwise_and(imgThresholded, mask, imgThresholded);
 		//morphological opening (remove small objects from the foreground)
 		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
 		dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
@@ -319,7 +412,7 @@ int initialCalibration(){
 		dM01 = oMoments.m01;
 		dM10 = oMoments.m10;
 		dArea = oMoments.m00;
-		cout << "dArea: " << dArea << "                   \r";
+		//cout << names[filter] << " : " << dArea << "                      \r";
 		if (dArea > AREA){
 			posX = dM10 / dArea;
 			posY = dM01 / dArea;
@@ -328,11 +421,14 @@ int initialCalibration(){
 		}
 
 		imshow("Thresholded video", imgThresholded);
-		imshow("Video stream", imgOriginal);
+		imshow("VIDEO STREAM", imgOriginal);
+		imshow("Mask", mask);
 
 		key = waitKey(20);
-		if (key == 13){			//ENTER - confirm
-			cout << "\rCalibration DONE.        \n" << endl;
+		if (key == 13){			//ENTER - confirm and save
+			cout << "\rCalibration DONE.               \n" << endl;
+			cout << "ENTER: Parameters saved." << endl;
+			cout << "------------------------------------------------------------" << endl;
 			iLowH[filter] = iLowHt;
 			iHighH[filter] = iHighHt;
 			iLowS[filter] = iLowSt;
@@ -343,14 +439,14 @@ int initialCalibration(){
 			break;
 		}
 		else if (key == 27){	//ESC - discard changes
-			cout << "\rCalibration skipped.        \n" << endl;
-			//Load config again
-			loadConfig();
+			cout << "\rCalibration done.        \n" << endl;
+			cout << "ESC: Using previous parameters." << endl;
+			cout << "------------------------------------------------------------" << endl;
+			loadConfig();	//Load config again
 			break;
 		}
 	}
 	destroyAllWindows();
-
 	return 0;
 }
 
@@ -359,31 +455,53 @@ int imgProcess(){
 	//Load config
 	loadConfig();
 
-	Mat imgThresh[FILTERS];
-	Mat imgOriginal;
-	Mat imgHSV;
-	Moments oMoments;
+	unsigned i, img = 0;
+	float radius, mRadius;
 	double posX, posY, dM01, dM10, dArea;
-	int i, img = 0;
+	Point2f center, mCenter;
+	Moments oMoments;
+	Mat imgHSV, imgOriginal;
+	Mat imgThresh[FILTERS];
+	vector<vector<Point>> contours;
 
+	cout << "IMAGE PROCESSING" << endl;
 	cout << "This function process image_n.bmp where n = 0, 1, 2, ..." << endl;
-	cout << "------------------------------------------------------------" << endl;
+	cout << "--------------------" << endl;
 	while (1){
 		imgOriginal = imread(IMG_DIR + to_string(img) + ".bmp");
 		if (!imgOriginal.data){
-			cout << "------------------------------------------------------------" << endl;
+			cout << "--------------------" << endl;
 			cout << "Processed " << img << " images." << endl;
-			cout << "Press ENTER to close." << endl;
-
+			cout << "Press ENTER to close.";
 			getchar();
+			cout << "------------------------------------------------------------" << endl;
 			break;
 		}
 		cout << "Procesing image_" + to_string(img) + ".bmp" << endl;
 		cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
+		//Create mask
+		inRange(imgHSV, Scalar(iLowH[0], iLowS[0], iLowV[0]), Scalar(iHighH[0], iHighS[0], iHighV[0]), imgThresh[0]);
+		erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		if (contours.size() > 0){
+			mRadius = 0;
+			for (i = 0; i < contours.size(); i++){
+				minEnclosingCircle(Mat(contours[i]), center, radius);
+				if (radius > mRadius){
+					mRadius = radius;
+					mCenter = center;
+				}
+			}
+			mask = Mat::zeros(mask.size(), CV_8UC1);
+			circle(mask, mCenter, (int)(mRadius*R_MUL), Scalar(255, 255, 255), -1);
+		}
 
-		for (i = 0; i < FILTERS; i++){
+		for (i = 1; i < FILTERS; i++){
 			inRange(imgHSV, Scalar(iLowH[i], iLowS[i], iLowV[i]), Scalar(iHighH[i], iHighS[i], iHighV[i]), imgThresh[i]);
-				
+			bitwise_and(imgThresh[i], mask, imgThresh[i]);
+
 			//morphological opening (remove small objects from the foreground)
 			erode(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
 			dilate(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
@@ -410,7 +528,7 @@ int imgProcess(){
 }
 
 //Calibration on images
-int filterImages(){
+int filtersOnImages(){
 	//Load configuration
 	loadConfig();
 
@@ -422,8 +540,11 @@ int filterImages(){
 	int iLowVt = iLowV[0];
 	int iHighVt = iHighV[0];
 
-	int img = 0;
-	Mat imgOriginal, imgHSV;
+	int key, img = 0;
+	double posX, posY, dM01, dM10, dArea;
+	Mat imgOriginal, imgHSV, imgThresholded, imgToShow;
+	Moments oMoments;
+
 	imgOriginal = imread(IMG_DIR + to_string(img) + ".bmp");
 	if (!imgOriginal.data){
 		return errorFunc("Properly named images not found! <image_n.bmp where n = 0, 1, 2, ...>", -1);
@@ -433,14 +554,9 @@ int filterImages(){
 	//Creating Calibration window
 	configWindow(&filter, &iLowHt, &iHighHt, &iLowSt, &iHighSt, &iLowVt, &iHighVt);
 	
-	Mat imgThresholded, imgToShow;
-	Moments oMoments;
-	double posX, posY, dM01, dM10, dArea;
-	int key;
 	cout << "Press N to switch to next image. <focused on image window>" << endl;
 	cout << "Press S to save configuration. <focused on image window>" << endl;
 	cout << "Press ENTER to close. <focused on image window>" << endl;
-	cout << "------------------------------------------------------------" << endl;
 	while (true){
 		inRange(imgHSV, Scalar(iLowHt, iLowSt, iLowVt), Scalar(iHighHt, iHighSt, iHighVt), imgThresholded);
 
@@ -456,7 +572,7 @@ int filterImages(){
 		dM10 = oMoments.m10;
 		dArea = oMoments.m00;
 		imgToShow = imgOriginal.clone();
-		cout << "dArea: " << dArea << "                   \r";
+		cout << names[filter] << " : " << dArea << "                      \r";
 		if (dArea > AREA){
 			posX = dM10 / dArea;
 			posY = dM01 / dArea;
@@ -468,6 +584,9 @@ int filterImages(){
 
 		key = waitKey(20);
 		if (key == 13){			//ENTER - close
+			destroyAllWindows();
+			cout << "ENTER: closing." << endl;
+			cout << "------------------------------------------------------------" << endl;
 			break;
 		}
 		else if (key == 115){	//S - save config
@@ -478,7 +597,7 @@ int filterImages(){
 			iLowV[filter] = iLowVt;
 			iHighV[filter] = iHighVt;
 			saveConfig();
-			cout << "Configuration saved." << endl;
+			cout << "S: Configuration saved." << endl;
 		}
 		else if(key == 110){	//N - next image
 			img++;
@@ -498,30 +617,30 @@ int filterImages(){
 
 //Taking pictures
 int takePictures(){
-	if (!cap->isOpened()){
-		return errorFunc("Cam 0 was not initialized!", -1);
-	}
 	Mat imgOriginal;
-	bool bSuccess;
 	int key, img = 0;
 
+	cout << "TAKING PICTURES." << endl;
 	cout << "Press C to take a picture. <focused on video window>" << endl;
 	cout << "Press ENTER to close. <focused on video window>" << endl;
-	cout << "------------------------------------------------------------" << endl;
+	cout << "--------------------" << endl;
 	while (true){
-		bSuccess = cap->read(imgOriginal);
-		if (!bSuccess){
+		if (!cap->read(imgOriginal)){
 			return errorFunc("Cannot read a frame from video stream of Cam 0!", -1);
 		}
-		imshow("Video stream", imgOriginal);
+		imshow("VIDEO STREAM", imgOriginal);
 
 		key = waitKey(20);
 		if (key == 13){			//ENTER - close
+			destroyAllWindows();
+			cout << "--------------------" << endl;
+			cout << "ENTER: closing." << endl;
+			cout << "------------------------------------------------------------" << endl;
 			break;
 		}
 		else if (key == 99){	//C - take picture
 			imwrite(IMG_DIR + to_string(img) + ".bmp", imgOriginal);
-			cout << "Picture saved to image_" + to_string(img) + ".bmp" << endl;
+			cout << "C: Picture saved to image_" + to_string(img) + ".bmp" << endl;
 			img++;
 		}
 	}

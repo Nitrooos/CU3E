@@ -13,6 +13,8 @@ using namespace glm;
 #include "ShaderProgram.hpp"
 #include "ObjectBuffers.hpp"
 
+#include "opencv2/legacy/compat.hpp"
+
 class Entity {
     public:
         Entity(ObjectBuffers *ob, ShaderProgram *sp, GraphicsManager *gr, double x, double y, double z, TextureType tex0);
@@ -27,6 +29,8 @@ class Entity {
         void setAngle(double angle);
         void scale(double scale);
         void setTexture(int num, TextureType tex);
+        void setRotationM(CvMatr32f m);
+        void setTranslationM(CvMatr32f m);
         TextureType getTexture(int num) const;
 
         float getX() const { return x; }

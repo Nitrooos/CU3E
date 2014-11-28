@@ -1,5 +1,6 @@
 #include "World.hpp"
 #include "App.hpp"
+#include "Capture.hpp"
 
 #include <iostream>
 
@@ -12,7 +13,10 @@ World::World(GraphicsManager *gm) : grMananger(gm) {
     onInit();
 }
 
-World::~World() { }
+World::~World() {
+	// z modułu Capture
+	destCap();
+}
 
 void World::onKeyboardEvent(Event e) {
     // zakładamy, że obiekty mogą reagować tylko na wciśnięcie klawisza
@@ -68,6 +72,14 @@ void World::onLoop() {
         camera.movEye(xShift, yShift, zShift);
 
     //camera.writeCoordinates();
+    
+    CvMatr32f rotationM 	= new float[9],
+    		  translationM	= new float[3];
+    detectOnce(rotationM, translationM);
+    objects.back().setRotationM(rotationM);
+    //cout << "\r" << rotationM[0] << "\t|\t" << rotationM[1] << "\t|\t" << rotationM[2] << flush;
+    delete rotationM;
+    delete translationM;
 }
 
 void World::onRender() {
@@ -78,6 +90,9 @@ void World::onRender() {
 
 void World::onInit() {
     glEnable(GL_DEPTH_TEST);
+    
+    // z modułu Capture
+    initCap();
 }
 
 void World::nextTexture() {

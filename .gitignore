@@ -9,5 +9,7 @@ obj/
 data/textures/other
 
 Capturing/
+POSIT/
+screenshots/
 
 *.jpg

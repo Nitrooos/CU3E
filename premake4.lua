@@ -6,12 +6,12 @@ solution "OpenGL"
             kind "ConsoleApp"
             files "src/*.cpp"
             buildoptions { "-w -Wall -std=c++11" }
-            linkoptions { "-lGL -lsfml-window -lsfml-system -lsfml-graphics -lGLEW" }
+            linkoptions { "-fopenmp -lGL -lsfml-window -lsfml-system -lsfml-graphics -lGLEW `pkg-config --libs opencv`" }
             objdir "obj"
 
         configuration { "debug" }
             targetdir "debug"
-            flags "Symbols"
+
 
         configuration { "release" }
             targetdir "release"

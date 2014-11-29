@@ -1,30 +1,27 @@
 #include "Capture.hpp"
 
-#include <omp.h>
-
-#define IMG_DIR "output\\image_"
-#define FILTERS 9
+#define IMG_DIR "output/image_"
+#define FILTERS 5
 #define AREA 20000			//Tolerance for vertices detection
 #define R_MUL 1.1			//Region of detection radious multiplier
 #define FOCAL_LENGTH 1000	//Focal length
 #define CUBE_SIZE 10		//Cube model size
 
 //Parameters default values
-              // CUB  wht  yel  ora  red  lbl  gre  dbl  blk
-int iLowH[]  = {   0,   0,   0,   0,   0,   0,   0,   0,   0 };	//0
-int iHighH[] = { 179, 179, 179, 179, 179, 179, 179, 179, 179 };	//179
-int iLowS[]  = {   0,   0,   0,   0,   0,   0,   0,   0,   0 };	//0
-int iHighS[] = { 255, 255, 255, 255, 255, 255, 255, 255, 255 };	//255
-int iLowV[]  = {   0,   0,   0,   0,   0,   0,   0,   0,   0 };	//0
-int iHighV[] = { 255, 255, 255, 255, 255, 255, 255, 255, 255 };	//255
-string names[] = { "CUB", "WHT", "YEL", "ORA", "RED", "LBL", "GRE", "DBL", "BLK" };
+              // CUB  ora  red  blu  ???
+int iLowH[]  = {   0,   0,   0,   0,   0 };	//0
+int iHighH[] = { 179, 179, 179, 179, 179 };	//179
+int iLowS[]  = {   0,   0,   0,   0,   0 };	//0
+int iHighS[] = { 255, 255, 255, 255, 255 };	//255
+int iLowV[]  = {   0,   0,   0,   0,   0 };	//0
+int iHighV[] = { 255, 255, 255, 255, 255 };	//255
+string names[] = { "CUB", "ORA", "RED", "BLU", "???" };
 
 int oldVal = 0;		//Variable to store ID of previously edited filter
 Mat mask;			//Mask to set the region of detection
+Mat edStrEl = getStructuringElement(MORPH_ELLIPSE, Size(4, 4));  //Structuring element for erode and dilate
 
 VideoCapture *cap;	//Camera descriptor
-double cWidth;		//Camera frame width
-double cHeight;		//Camera frame height
 
 //Errors printing function
 int errorFunc(String text, int value){
@@ -41,7 +38,7 @@ int errorFunc(String text, int value){
 void loadConfig(){
 	string tmp;
 	fstream config;
-	config.open("Capturing/Capturing/config.cfg", fstream::in);
+	config.open("data/config.cfg", fstream::in);
 	for (int i = 0; i < FILTERS; i++){
 		getline(config, tmp);
 		iLowH[i] = atoi(tmp.c_str());
@@ -76,6 +73,9 @@ void saveConfig(){
 
 //Initialization of capture
 int initCap(){
+	double cWidth;
+	double cHeight;
+
 	//Threads to parallel detection of vertices
 	omp_set_num_threads(FILTERS-1);
 
@@ -165,13 +165,10 @@ void configWindow(int *filter, int *iLowHt, int *iHighHt, int *iLowSt, int *iHig
 int detecting(){
 	unsigned i;
 	float radius, mRadius;
-	double dM01, dM10, dArea;
-	double posX[FILTERS];
-	double posY[FILTERS];
+	double dM01, dM10, dArea, posX[FILTERS], posY[FILTERS];
 	Point2f center, mCenter;
 	Moments oMoments;
-	Mat imgOriginal, imgHSV, imgThresholded, imgToShow;
-	Mat imgThresh[FILTERS];
+	Mat imgOriginal, imgHSV, imgThresholded, imgToShow, imgThresh[FILTERS];
 	vector<vector<Point>> contours;
 
 	cout << "CONTINUOUS DETECTION." << endl;
@@ -183,10 +180,10 @@ int detecting(){
 		cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
 		//Create mask
 		inRange(imgHSV, Scalar(iLowH[0], iLowS[0], iLowV[0]), Scalar(iHighH[0], iHighS[0], iHighV[0]), imgThresh[0]);
-		erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		erode(imgThresh[0], imgThresh[0], edStrEl);
+		dilate(imgThresh[0], imgThresh[0], edStrEl);
+		dilate(imgThresh[0], imgThresh[0], edStrEl);
+		erode(imgThresh[0], imgThresh[0], edStrEl);
 		if (contours.size() > 0){
 			mRadius = 0;
 			for (i = 0; i < contours.size(); i++){
@@ -208,11 +205,11 @@ int detecting(){
 			bitwise_and(imgThresh[i], mask, imgThresh[i]);
 
 			//morphological opening (remove small objects from the foreground)
-			erode(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-			dilate(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+			erode(imgThresh[i], imgThresh[i], edStrEl);
+			dilate(imgThresh[i], imgThresh[i], edStrEl);
 			//morphological closing (fill small holes in the foreground)
-			dilate(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-			erode(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+			dilate(imgThresh[i], imgThresh[i], edStrEl);
+			erode(imgThresh[i], imgThresh[i], edStrEl);
 
 			oMoments = moments(imgThresh[i]);
 			dM01 = oMoments.m01;
@@ -254,23 +251,12 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 	static double dM01, dM10, dArea, posX[FILTERS], posY[FILTERS];
 	static Point2f center, mCenter;
 	static Moments oMoments;
-	//static Mat imgToShow;
 	static Mat imgOriginal, imgHSV, imgThresh[FILTERS];
 	static vector<vector<Point>> contours;
 
 	static vector<CvPoint2D32f> srcImagePoints;
 	static vector<CvPoint3D32f> modelPoints;
 	static CvPOSITObject* positObject;
-	/*static double model[8][3] = {
-		{ 0.0f, 0.0f, 0.0f },	//White
-		{ 0.0f, 1.0f, 1.0f },	//Yellow
-		{ 1.0f, 0.0f, 1.0f },	//Orange
-		{ 0.0f, 1.0f, 0.0f },	//Red
-		{ 1.0f, 1.0f, 0.0f },	//Light Blue
-		{ 1.0f, 1.0f, 1.0f },	//Grey
-		{ 0.0f, 0.0f, 1.0f },	//Dark Blue
-		{ 1.0f, 0.0f, 0.0f }	//Black
-	};*/
 	static double model[4][3] = {
 		{ 0.0f, 1.0f, 0.0f },
 		{ 1.0f, 1.0f, 0.0f },
@@ -285,10 +271,10 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 	cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
 	//Create mask
 	inRange(imgHSV, Scalar(iLowH[0], iLowS[0], iLowV[0]), Scalar(iHighH[0], iHighS[0], iHighV[0]), imgThresh[0]);
-	erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-	dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-	dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-	erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+	erode(imgThresh[0], imgThresh[0], edStrEl);
+	dilate(imgThresh[0], imgThresh[0], edStrEl);
+	dilate(imgThresh[0], imgThresh[0], edStrEl);
+	erode(imgThresh[0], imgThresh[0], edStrEl);
 	findContours(imgThresh[0], contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 	if (contours.size() > 0){
 		mRadius = 0;
@@ -302,18 +288,17 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 		mask = Mat::zeros(mask.size(), CV_8UC1);
 		circle(mask, mCenter, (int)(mRadius*R_MUL), Scalar(255, 255, 255), -1);
 	}
-	//imgToShow = imgOriginal.clone();		//DELETE IN FINAL VERSION
 	#pragma omp parallel for schedule(static, 1)
 	for (i = 1; i < FILTERS; i++){
 		inRange(imgHSV, Scalar(iLowH[i], iLowS[i], iLowV[i]), Scalar(iHighH[i], iHighS[i], iHighV[i]), imgThresh[i]);
 		bitwise_and(imgThresh[i], mask, imgThresh[i]);
 
 		//morphological opening (remove small objects from the foreground)
-		erode(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		dilate(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		erode(imgThresh[i], imgThresh[i], edStrEl);
+		dilate(imgThresh[i], imgThresh[i], edStrEl);
 		//morphological closing (fill small holes in the foreground)
-		dilate(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		erode(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		dilate(imgThresh[i], imgThresh[i], edStrEl);
+		erode(imgThresh[i], imgThresh[i], edStrEl);
 
 		oMoments = moments(imgThresh[i]);
 		dM01 = oMoments.m01;
@@ -342,7 +327,6 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 			srcImagePoints.push_back(cvPoint2D32f(posX[i], posY[i]));
 		}
 	}
-
 	if (modelPoints.size() > 3){
 		//Create the POSIT object with the model points
 		positObject = cvCreatePOSITObject(&modelPoints[0], (int)modelPoints.size());
@@ -389,10 +373,10 @@ int initialCalibration(){
 
 		//Create mask
 		inRange(imgHSV, Scalar(iLowH[0], iLowS[0], iLowV[0]), Scalar(iHighH[0], iHighS[0], iHighV[0]), imgThresholded);
-		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		erode(imgThresholded, imgThresholded, edStrEl);
+		dilate(imgThresholded, imgThresholded, edStrEl);
+		dilate(imgThresholded, imgThresholded, edStrEl);
+		erode(imgThresholded, imgThresholded, edStrEl);
 		findContours(imgThresholded, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 		if (contours.size() > 0){
 			mRadius = 0;
@@ -410,11 +394,11 @@ int initialCalibration(){
 		inRange(imgHSV, Scalar(iLowHt, iLowSt, iLowVt), Scalar(iHighHt, iHighSt, iHighVt), imgThresholded);
 		if (filter) bitwise_and(imgThresholded, mask, imgThresholded);
 		//morphological opening (remove small objects from the foreground)
-		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		erode(imgThresholded, imgThresholded, edStrEl);
+		dilate(imgThresholded, imgThresholded, edStrEl);
 		//morphological closing (fill small holes in the foreground)
-		dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		dilate(imgThresholded, imgThresholded, edStrEl);
+		erode(imgThresholded, imgThresholded, edStrEl);
 
 		oMoments = moments(imgThresholded);
 		dM01 = oMoments.m01;
@@ -433,8 +417,8 @@ int initialCalibration(){
 		imshow("Mask", mask);
 
 		key = waitKey(20);
-		if (key == 1048691){			//ENTER - confirm and save
-			cout << "\rCalibration DONE.               \n" << endl;
+		if (key == 1048586){			//ENTER - confirm and save
+			cout << "\rCalibration DONE.               " << endl;
 			cout << "ENTER: Parameters saved." << endl;
 			cout << "------------------------------------------------------------" << endl;
 			iLowH[filter] = iLowHt;
@@ -446,8 +430,8 @@ int initialCalibration(){
 			saveConfig();
 			break;
 		}
-		else if (key == 1048689){	//ESC - discard changes
-			cout << "\rCalibration done.        \n" << endl;
+		else if (key == 1048603){	//ESC - discard changes
+			cout << "\rCalibration done.        " << endl;
 			cout << "ESC: Using previous parameters." << endl;
 			cout << "------------------------------------------------------------" << endl;
 			loadConfig();	//Load config again
@@ -489,10 +473,10 @@ int imgProcess(){
 		cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
 		//Create mask
 		inRange(imgHSV, Scalar(iLowH[0], iLowS[0], iLowV[0]), Scalar(iHighH[0], iHighS[0], iHighV[0]), imgThresh[0]);
-		erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		dilate(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		erode(imgThresh[0], imgThresh[0], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		erode(imgThresh[0], imgThresh[0], edStrEl);
+		dilate(imgThresh[0], imgThresh[0], edStrEl);
+		dilate(imgThresh[0], imgThresh[0], edStrEl);
+		erode(imgThresh[0], imgThresh[0], edStrEl);
 		if (contours.size() > 0){
 			mRadius = 0;
 			for (i = 0; i < contours.size(); i++){
@@ -511,11 +495,11 @@ int imgProcess(){
 			bitwise_and(imgThresh[i], mask, imgThresh[i]);
 
 			//morphological opening (remove small objects from the foreground)
-			erode(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-			dilate(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+			erode(imgThresh[i], imgThresh[i], edStrEl);
+			dilate(imgThresh[i], imgThresh[i], edStrEl);
 			//morphological closing (fill small holes in the foreground)
-			dilate(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-			erode(imgThresh[i], imgThresh[i], getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+			dilate(imgThresh[i], imgThresh[i], edStrEl);
+			erode(imgThresh[i], imgThresh[i], edStrEl);
 			//imwrite(IMG_DIR + to_string(img) + "_f" + to_string(i) + "p.bmp", imgThresh[i]);
 
 			oMoments = moments(imgThresh[i]);
@@ -549,9 +533,13 @@ int filtersOnImages(){
 	int iHighVt = iHighV[0];
 
 	int key, img = 0;
+	unsigned i;
+	float radius, mRadius;
 	double posX, posY, dM01, dM10, dArea;
 	Mat imgOriginal, imgHSV, imgThresholded, imgToShow;
 	Moments oMoments;
+	Point2f center, mCenter;
+	vector<vector<Point>> contours;
 
 	imgOriginal = imread(IMG_DIR + to_string(img) + ".bmp");
 	if (!imgOriginal.data){
@@ -566,14 +554,34 @@ int filtersOnImages(){
 	cout << "Press S to save configuration. <focused on image window>" << endl;
 	cout << "Press ENTER to close. <focused on image window>" << endl;
 	while (true){
+		//Create mask
+		inRange(imgHSV, Scalar(iLowH[0], iLowS[0], iLowV[0]), Scalar(iHighH[0], iHighS[0], iHighV[0]), imgThresholded);
+		erode(imgThresholded, imgThresholded, edStrEl);
+		dilate(imgThresholded, imgThresholded, edStrEl);
+		dilate(imgThresholded, imgThresholded, edStrEl);
+		erode(imgThresholded, imgThresholded, edStrEl);
+		findContours(imgThresholded, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+		if (contours.size() > 0){
+			mRadius = 0;
+			for (i = 0; i < contours.size(); i++){
+				minEnclosingCircle(Mat(contours[i]), center, radius);
+				if (radius > mRadius){
+					mRadius = radius;
+					mCenter = center;
+				}
+			}
+			mask = Mat::zeros(mask.size(), CV_8UC1);
+			circle(mask, mCenter, (int)(mRadius*R_MUL), Scalar(255, 255, 255), -1);
+		}
 		inRange(imgHSV, Scalar(iLowHt, iLowSt, iLowVt), Scalar(iHighHt, iHighSt, iHighVt), imgThresholded);
+		if (filter) bitwise_and(imgThresholded, mask, imgThresholded);
 
 		//morphological opening (remove small objects from the foreground)
-		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		erode(imgThresholded, imgThresholded, edStrEl);
+		dilate(imgThresholded, imgThresholded, edStrEl);
 		//morphological closing (fill small holes in the foreground)
-		dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
-		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
+		dilate(imgThresholded, imgThresholded, edStrEl);
+		erode(imgThresholded, imgThresholded, edStrEl);
 
 		oMoments = moments(imgThresholded);
 		dM01 = oMoments.m01;
@@ -593,7 +601,7 @@ int filtersOnImages(){
 		key = waitKey(20);
 		if (key == 13){			//ENTER - close
 			destroyAllWindows();
-			cout << "ENTER: closing." << endl;
+			cout << "ENTER: closing.           " << endl;
 			cout << "------------------------------------------------------------" << endl;
 			break;
 		}
@@ -605,7 +613,7 @@ int filtersOnImages(){
 			iLowV[filter] = iLowVt;
 			iHighV[filter] = iHighVt;
 			saveConfig();
-			cout << "S: Configuration saved." << endl;
+			cout << "S: Configuration saved.   " << endl;
 		}
 		else if(key == 110){	//N - next image
 			img++;

@@ -72,11 +72,12 @@ void World::onLoop() {
         camera.movEye(xShift, yShift, zShift);
 
     //camera.writeCoordinates();
-    
+
     CvMatr32f rotationM 	= new float[9],
     		  translationM	= new float[3];
     detectOnce(rotationM, translationM);
-    objects.back().setRotationM(rotationM);
+    objects.back().setTranslationM(translationM);
+    //objects.back().setRotationM(rotationM);
     //cout << "\r" << rotationM[0] << "\t|\t" << rotationM[1] << "\t|\t" << rotationM[2] << flush;
     delete rotationM;
     delete translationM;
@@ -90,7 +91,7 @@ void World::onRender() {
 
 void World::onInit() {
     glEnable(GL_DEPTH_TEST);
-    
+
     // z modułu Capture
     initCap();
 }

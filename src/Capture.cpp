@@ -10,7 +10,7 @@
 #define CUBE_SIZE 10		//Cube model size
 
 //Parameters default values
-              // CUB  wht  yel  ora  red  lbl  gre  dbl  blk 
+              // CUB  wht  yel  ora  red  lbl  gre  dbl  blk
 int iLowH[]  = {   0,   0,   0,   0,   0,   0,   0,   0,   0 };	//0
 int iHighH[] = { 179, 179, 179, 179, 179, 179, 179, 179, 179 };	//179
 int iLowS[]  = {   0,   0,   0,   0,   0,   0,   0,   0,   0 };	//0
@@ -41,7 +41,7 @@ int errorFunc(String text, int value){
 void loadConfig(){
 	string tmp;
 	fstream config;
-	config.open("config.cfg", fstream::in);
+	config.open("Capturing/Capturing/config.cfg", fstream::in);
 	for (int i = 0; i < FILTERS; i++){
 		getline(config, tmp);
 		iLowH[i] = atoi(tmp.c_str());
@@ -173,7 +173,7 @@ int detecting(){
 	Mat imgOriginal, imgHSV, imgThresholded, imgToShow;
 	Mat imgThresh[FILTERS];
 	vector<vector<Point>> contours;
-	
+
 	cout << "CONTINUOUS DETECTION." << endl;
 	cout << "Press ENTER to exit. <focused on video window>" << endl;
 	while (true){
@@ -271,15 +271,11 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 		{ 0.0f, 0.0f, 1.0f },	//Dark Blue
 		{ 1.0f, 0.0f, 0.0f }	//Black
 	};*/
-	static double model[8][3] = {
-		{ 0.0, 0.0, 0.0 },
-		{ 1.0, 1.0, 0.0 },
-		{ 0.0, 1.0, 0.0 },
-		{ 1.0, 0.0, 1.0 },
-		{ 0.0, 1.0, 1.0 },
-		{ 0.0, 0.0, 1.0 },
-		{ 1.0, 0.0, 0.0 },
-		{ 1.0, 1.0, 1.0 },
+	static double model[4][3] = {
+		{ 0.0f, 1.0f, 0.0f },
+		{ 1.0f, 1.0f, 0.0f },
+		{ 1.0f, 0.0f, 0.0f },
+		{ 0.0f, 0.0f, 1.0f },
 	};
 	static CvTermCriteria criteria = cvTermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 100, 1.0e-4f);
 
@@ -335,14 +331,14 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 			//}								//DELETE IN FINAL VERSION
 		}
 	}
-	
+
 	modelPoints.clear();
 	srcImagePoints.clear();
 	for (i = 1; i < FILTERS; i++){
 		if (vert[i]){
 			//Create the model points
 			modelPoints.push_back(cvPoint3D32f(model[i][0], model[i][1], model[i][2]));
-			//Create the image points 
+			//Create the image points
 			srcImagePoints.push_back(cvPoint2D32f(posX[i], posY[i]));
 		}
 	}
@@ -390,7 +386,7 @@ int initialCalibration(){
 			return errorFunc("Cannot read a frame from video stream of Cam 0!", -1);
 		}
 		cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
-		
+
 		//Create mask
 		inRange(imgHSV, Scalar(iLowH[0], iLowS[0], iLowV[0]), Scalar(iHighH[0], iHighS[0], iHighV[0]), imgThresholded);
 		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)));
@@ -410,7 +406,7 @@ int initialCalibration(){
 			mask = Mat::zeros(mask.size(), CV_8UC1);
 			circle(mask, mCenter, (int)(mRadius*R_MUL), Scalar(255, 255, 255), -1);
 		}
-		
+
 		inRange(imgHSV, Scalar(iLowHt, iLowSt, iLowVt), Scalar(iHighHt, iHighSt, iHighVt), imgThresholded);
 		if (filter) bitwise_and(imgThresholded, mask, imgThresholded);
 		//morphological opening (remove small objects from the foreground)
@@ -565,7 +561,7 @@ int filtersOnImages(){
 
 	//Creating Calibration window
 	configWindow(&filter, &iLowHt, &iHighHt, &iLowSt, &iHighSt, &iLowVt, &iHighVt);
-	
+
 	cout << "Press N to switch to next image. <focused on image window>" << endl;
 	cout << "Press S to save configuration. <focused on image window>" << endl;
 	cout << "Press ENTER to close. <focused on image window>" << endl;

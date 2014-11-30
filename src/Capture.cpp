@@ -1,21 +1,21 @@
 #include "Capture.hpp"
 
 #define IMG_DIR "output/image_"
-#define FILTERS 5
-#define AREA 20000			//Tolerance for vertices detection
+#define FILTERS 5			//Number of detecting objects
+#define AREA 10000			//Tolerance for vertices detection
 #define R_MUL 1.1			//Region of detection radious multiplier
 #define FOCAL_LENGTH 1000	//Focal length
-#define CUBE_SIZE 10		//Cube model size
+#define CAM_ID 1			//Camera number
 
 //Parameters default values
-              // CUB  ora  red  blu  ???
-int iLowH[]  = {   0,   0,   0,   0,   0 };	//0
-int iHighH[] = { 179, 179, 179, 179, 179 };	//179
-int iLowS[]  = {   0,   0,   0,   0,   0 };	//0
-int iHighS[] = { 255, 255, 255, 255, 255 };	//255
-int iLowV[]  = {   0,   0,   0,   0,   0 };	//0
-int iHighV[] = { 255, 255, 255, 255, 255 };	//255
-string names[] = { "CUB", "ORA", "RED", "BLU", "???" };
+              // CUB  yel  ora  red  blu  ???
+int iLowH[]  = {   0,   0,   0,   0,   0,   0 };	//0
+int iHighH[] = { 179, 179, 179, 179, 179, 179 };	//179
+int iLowS[]  = {   0,   0,   0,   0,   0,   0 };	//0
+int iHighS[] = { 255, 255, 255, 255, 255, 255 };	//255
+int iLowV[]  = {   0,   0,   0,   0,   0,   0 };	//0
+int iHighV[] = { 255, 255, 255, 255, 255, 255 };	//255
+string names[] = { "CUB", "YEL", "ORA", "RED", "BLU", "???" };
 
 int oldVal = 0;		//Variable to store ID of previously edited filter
 Mat mask;			//Mask to set the region of detection
@@ -59,7 +59,7 @@ void loadConfig(){
 //Saving filters parameters
 void saveConfig(){
 	fstream config;
-	config.open("config.cfg", fstream::out | fstream::trunc);
+	config.open("data/config.cfg", fstream::out | fstream::trunc);
 	for (int i = 0; i < FILTERS; i++){	//Saving parameters
 		config << iLowH[i] << endl;
 		config << iHighH[i] << endl;
@@ -83,7 +83,7 @@ int initCap(){
 	loadConfig();
 
 	//Initialize Cam 0
-	cap = new VideoCapture(0);
+	cap = new VideoCapture(CAM_ID);
 	if (!cap->isOpened()){
 		return errorFunc("Cannot open Cam 0!", -1);
 	}
@@ -184,6 +184,7 @@ int detecting(){
 		dilate(imgThresh[0], imgThresh[0], edStrEl);
 		dilate(imgThresh[0], imgThresh[0], edStrEl);
 		erode(imgThresh[0], imgThresh[0], edStrEl);
+		findContours(imgThresh[0], contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 		if (contours.size() > 0){
 			mRadius = 0;
 			for (i = 0; i < contours.size(); i++){
@@ -233,7 +234,7 @@ int detecting(){
 		imshow("Thresholded", imgThresholded);
 		imshow("VIDEO STREAM", imgToShow);
 
-		if (waitKey(20) == 13){		//ENTER - close
+		if (waitKey(20) == 1048586){		//ENTER - close
 			destroyAllWindows();
 			cout << "ENTER: closing." << endl;
 			cout << "------------------------------------------------------------" << endl;
@@ -257,11 +258,12 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 	static vector<CvPoint2D32f> srcImagePoints;
 	static vector<CvPoint3D32f> modelPoints;
 	static CvPOSITObject* positObject;
-	static double model[4][3] = {
-		{ 0.0f, 1.0f, 0.0f },
-		{ 1.0f, 1.0f, 0.0f },
-		{ 1.0f, 0.0f, 0.0f },
-		{ 0.0f, 0.0f, 1.0f },
+	static double model[5][3] = {
+		{ 0.0f, 1.0f, 0.0f },	//yellow
+		{ 1.0f, 1.0f, 0.0f },	//orange
+		{ 1.0f, 0.0f, 0.0f },	//red
+		{ 0.0f, 0.0f, 0.0001f },	//blue
+		{ 0.5f, 0.5f, 0.0f }	//purple
 	};
 	static CvTermCriteria criteria = cvTermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 100, 1.0e-4f);
 
@@ -334,7 +336,7 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 		cvPOSIT(positObject, &srcImagePoints[0], FOCAL_LENGTH, criteria, rotation, translation);
 	}
 
-	imshow("VIDEO STREAM", imgOriginal);		//DELETE IN FINAL VERSION
+	//imshow("VIDEO STREAM", imgOriginal);		//DELETE IN FINAL VERSION
 	return 0;
 }
 

@@ -33,12 +33,13 @@ class Entity {
         void setTranslationM(CvMatr32f m);
         TextureType getTexture(int num) const;
 
+        void updateMatrixM();
+        void printMatrixM();
+
         float getX() const { return x; }
         float getY() const { return y; }
         float getZ() const { return z; }
     private:
-        void updateMatrixM();
-
         ShaderProgram *shaderProgram;           // pointer do programu cieniującego
         ObjectBuffers *objectBuffers;           // pointer do buforów vbo
         GraphicsManager *grMan;
@@ -48,7 +49,7 @@ class Entity {
                 angle{0.0},                     // kąt obrotu (początkowo 0.0)
                 scaleCoeff{1.0};
 
-        mat4 matrixM;                           // macierz modelu
+        mat4 matrixM, translationM, rotationM;  // macierz modelu, translacji i rotacji
 };
 
 #endif /* end of include guard: Entity */

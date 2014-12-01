@@ -5,7 +5,7 @@
 #define AREA 10000			//Tolerance for vertices detection
 #define R_MUL 1.1			//Region of detection radious multiplier
 #define FOCAL_LENGTH 1000	//Focal length
-#define CAM_ID 1			//Camera number
+#define CAM_ID 0			//Camera number
 
 //Parameters default values
               // CUB  yel  ora  red  blu  ???
@@ -259,10 +259,10 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 	static vector<CvPoint3D32f> modelPoints;
 	static CvPOSITObject* positObject;
 	static double model[5][3] = {
-		{ 0.0f, 1.0f, 0.0f },	//yellow
-		{ 1.0f, 1.0f, 0.0f },	//orange
-		{ 1.0f, 0.0f, 0.0f },	//red
-		{ 0.0f, 0.0f, 0.0001f },	//blue
+		{ 0.0f, 1.0f, 0.0f },
+		{ 1.0f, 1.0f, 0.0f },
+		{ 1.0f, 0.0f, 0.0f },
+		{ 0.0f, 0.0f, 1.0f },
 		{ 0.5f, 0.5f, 0.0f }	//purple
 	};
 	static CvTermCriteria criteria = cvTermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 100, 1.0e-4f);

@@ -7,7 +7,7 @@
 
 Camera::Camera(float x, float y, float z) : x(x), y(y), z(z) {
     updateMatrixV();
-    matrixP = perspective(45.0f, (float)App::getWindowWidth()/(float)App::getWindowHeight(), 1.0f, 100.0f);
+    matrixP = perspective(60.0f, (float)App::getWindowWidth()/(float)App::getWindowHeight(), 1.0f, 100.0f);
 }
 
 Camera::~Camera() { }

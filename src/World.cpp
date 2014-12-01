@@ -11,6 +11,9 @@ World::World(GraphicsManager *gm) : grMananger(gm) {
                              0, 0, 0,
                              TextureType::Dice});
     onInit();
+
+    objects.back().setAngle(45);
+    objects.back().setPosition(1, 2, 3);
 }
 
 World::~World() {
@@ -63,24 +66,18 @@ void World::onLoop() {
           yShift =  this->height,
           zShift =  camera.getXShift(this->go) + camera.getZShift(this->side);
 
-    /*static float arg = 0.0f;
-    float scale = 1.5*abs(sin(arg)) + 0.5;
-    objects.back().scale(scale);
-    arg += 0.01f;*/
-
     if (xShift || yShift || zShift)
         camera.movEye(xShift, yShift, zShift);
 
-    //camera.writeCoordinates();
-
-    CvMatr32f rotationM 	= new float[9],
+    /*CvMatr32f rotationM 	= new float[9],
     		  translationM	= new float[3];
     detectOnce(rotationM, translationM);
+    objects.back().setRotationM(rotationM);
     objects.back().setTranslationM(translationM);
-    //objects.back().setRotationM(rotationM);
-    //cout << "\r" << rotationM[0] << "\t|\t" << rotationM[1] << "\t|\t" << rotationM[2] << flush;
+    objects.back().updateMatrixM();
+
     delete rotationM;
-    delete translationM;
+    delete translationM;*/
 }
 
 void World::onRender() {

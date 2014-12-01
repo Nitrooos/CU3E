@@ -9,7 +9,6 @@
 
 Entity::Entity(ObjectBuffers *ob, ShaderProgram *sp, GraphicsManager *gr, double x, double y, double z, TextureType tex0)
     : objectBuffers(ob), shaderProgram(sp), grMan(gr), x(x), y(y), z(z), tex0(tex0), tex1(TextureType::None) {
-        updateMatrixM();
 
     /*matrixM[0][0] =  0.588454;
     matrixM[0][1] = -0.00688001;
@@ -96,20 +95,20 @@ void Entity::setTexture(int num, TextureType tex) {
 }
 
 void Entity::setRotationM(CvMatr32f m) {
-	matrixM = mat4(1.0f);
+	rotationM = mat4(1.0f);
 
 	// Transpozycja
-	mat4 trans = matrixM;
+	/*mat4 trans = matrixM;
 	for (int f=0; f<3; f++) {
 		for (int c=0; c<3; c++) {
 			matrixM[f][c] = m[f*3 + c];	//transposed
 		}
-	}
+	}*/
 
-	/* Bez transpozycji
+	// Bez transpozycji
 	for (int f = 0; f < 3; ++f)
 		for (int c = 0; c < 3; ++c)
-			matrixM[f][c] = m[f*3 + c];*/
+			rotationM[f][c] = m[f*3 + c];
 
 	/*matrixM[0][3] = 0.0;
 	matrixM[1][3] = 0.0;
@@ -133,13 +132,13 @@ void Entity::setRotationM(CvMatr32f m) {
 }
 
 void Entity::setTranslationM(CvMatr32f m) {
-	matrixM = mat4(1.0f);
+	translationM = mat4(1.0f);
 
-	matrixM[3][0] = -2*m[0] + 2.5;
-	matrixM[3][1] = -2*m[1] + 2.5;
-	matrixM[3][2] = -1.5*m[2] + 7.5;
+	translationM[3][0] = -2*m[0] + 2.5;
+	translationM[3][1] = -2*m[1] + 2.5;
+	translationM[3][2] = -1.5*m[2] + 7.5;
 
-	cout << fixed << setw(15) << "\rTx:" << m[0] << "\t\tTy:" << m[1] << "\t\tTz:" << m[2];
+	//cout << fixed << setw(15) << "\rTx:" << m[0] << "\t\tTy:" << m[1] << "\t\tTz:" << m[2];
 }
 
 TextureType Entity::getTexture(int num) const {
@@ -150,7 +149,17 @@ TextureType Entity::getTexture(int num) const {
 void Entity::updateMatrixM() {
     matrixM = glm::scale(mat4(1.0f), vec3(scaleCoeff, scaleCoeff, scaleCoeff));
     matrixM = translate(matrixM, vec3(x, y, z));
-    matrixM = rotate(matrixM, angle, vec3(0.5f, 1.0f, 0.0f));
+    matrixM = rotate(matrixM, angle, vec3(0.0f, 0.0f, 1.0f));
 
-    //cout << glm::to_string(matrixM) << "\n\n";
+    printMatrixM();
+	//matrixM = translationM*rotationM;
+}
+
+void Entity::printMatrixM() {
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j)
+            cout << fixed << setw(15) << matrixM[j][i] << "\t";
+        cout << "\n";
+    }
+    cout << "\n";
 }

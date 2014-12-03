@@ -9,18 +9,6 @@
 
 Entity::Entity(ObjectBuffers *ob, ShaderProgram *sp, GraphicsManager *gr, double x, double y, double z, TextureType tex0)
     : objectBuffers(ob), shaderProgram(sp), grMan(gr), x(x), y(y), z(z), tex0(tex0), tex1(TextureType::None) {
-
-    /*matrixM[0][0] =  0.588454;
-    matrixM[0][1] = -0.00688001;
-    matrixM[0][2] = -0.808502;
-
-    matrixM[1][0] =  0.0680882;
-    matrixM[1][1] =  0.997148;
-    matrixM[1][2] =  0.0325452;
-
-    matrixM[2][0] =  0.805972;
-    matrixM[2][1] = -0.0742007;
-    matrixM[2][2] =  0.587244;*/
 }
 
 Entity::~Entity() { }
@@ -110,25 +98,7 @@ void Entity::setRotationM(CvMatr32f m) {
 		for (int c = 0; c < 3; ++c)
 			rotationM[f][c] = m[f*3 + c];
 
-	/*matrixM[0][3] = 0.0;
-	matrixM[1][3] = 0.0;
-	matrixM[2][3] = 0.0;
-	matrixM[3][0] = 0.0;
-	matrixM[3][1] = 0.0;
-	matrixM[3][2] = 0.0;
-	matrixM[3][3] = 1.0;*/
-
-	/*matrixM[0][0] = m[0];
-    matrixM[0][1] = m[1];
-    matrixM[0][2] = m[2];
-
-    matrixM[1][0] = m[3];
-    matrixM[1][1] = m[4];
-    matrixM[1][2] = m[5];
-
-    matrixM[2][0] = m[6];
-    matrixM[2][1] = m[7];
-    matrixM[2][2] = m[8];*/
+    matrixM = rotationM;
 }
 
 void Entity::setTranslationM(CvMatr32f m) {
@@ -147,18 +117,19 @@ TextureType Entity::getTexture(int num) const {
 }
 
 void Entity::updateMatrixM() {
-    matrixM = glm::scale(mat4(1.0f), vec3(scaleCoeff, scaleCoeff, scaleCoeff));
+	//matrixM = translationM*rotationM;
+    /*matrixM = glm::scale(mat4(1.0f), vec3(scaleCoeff, scaleCoeff, scaleCoeff));
     matrixM = translate(matrixM, vec3(x, y, z));
-    matrixM = rotate(matrixM, angle, vec3(0.0f, 0.0f, 1.0f));
+    matrixM = rotate(matrixM, angle, vec3(1.0f, 0.0f, 0.0f));*/
 
     printMatrixM();
-	//matrixM = translationM*rotationM;
 }
 
 void Entity::printMatrixM() {
+    system("clear");
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j)
-            cout << fixed << setw(15) << matrixM[j][i] << "\t";
+            cout << fixed << setw(10) << matrixM[j][i] << "\t";
         cout << "\n";
     }
     cout << "\n";

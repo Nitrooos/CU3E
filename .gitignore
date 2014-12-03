@@ -13,3 +13,7 @@ POSIT/
 screenshots/
 
 *.jpg
+
+RotationTest/
+
+data/config.cfg

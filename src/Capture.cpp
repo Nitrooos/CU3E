@@ -1,4 +1,5 @@
 #include "Capture.hpp"
+#include "App.hpp"
 
 #define IMG_DIR "output/image_"
 #define FILTERS 5			//Number of detecting objects
@@ -24,7 +25,7 @@ Mat edStrEl = getStructuringElement(MORPH_ELLIPSE, Size(4, 4));  //Structuring e
 VideoCapture *cap;	//Camera descriptor
 
 //Errors printing function
-int errorFunc(String text, int value){
+int errorFunc(string text, int value){
 	destroyAllWindows();
 	cout << "------------------------------------------------------------" << endl;
 	cout << endl << "ERROR: " << text << endl;
@@ -258,12 +259,11 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 	static vector<CvPoint2D32f> srcImagePoints;
 	static vector<CvPoint3D32f> modelPoints;
 	static CvPOSITObject* positObject;
-	static double model[5][3] = {
+	static double model[4][3] = {
+		{ 0.0f, 0.0f, 0.0f },
 		{ 0.0f, 1.0f, 0.0f },
 		{ 1.0f, 1.0f, 0.0f },
-		{ 1.0f, 0.0f, 0.0f },
-		{ 0.0f, 0.0f, 1.0f },
-		{ 0.5f, 0.5f, 0.0f }	//purple
+		{ 1.0f, 0.0f, 1.0f },
 	};
 	static CvTermCriteria criteria = cvTermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 100, 1.0e-4f);
 
@@ -308,8 +308,8 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 		dArea = oMoments.m00;
 		vert[i] = false;
 		if (dArea > AREA){
-			posX[i] = dM10 / dArea;
-			posY[i] = dM01 / dArea;
+			posX[i] = dM10/dArea - App::getWindowWidth()/2;
+			posY[i] = App::getWindowHeight()/2 - dM01/dArea;
 			vert[i] = true;
 			//#pragma omp critical			//DELETE IN FINAL VERSION
 			//{								//DELETE IN FINAL VERSION
@@ -324,7 +324,7 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 	for (i = 1; i < FILTERS; i++){
 		if (vert[i]){
 			//Create the model points
-			modelPoints.push_back(cvPoint3D32f(model[i][0], model[i][1], model[i][2]));
+			modelPoints.push_back(cvPoint3D32f(model[i-1][0], model[i-1][1], model[i-1][2]));
 			//Create the image points
 			srcImagePoints.push_back(cvPoint2D32f(posX[i], posY[i]));
 		}

@@ -1,11 +1,13 @@
-#include <iostream>
-#include <iomanip>
 #include "Entity.hpp"
 #include "GraphicsManager.hpp"
 
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/string_cast.hpp"
+
+#include <iostream>
+#include <iomanip>
+#include <cmath>
 
 Entity::Entity(ObjectBuffers *ob, ShaderProgram *sp, GraphicsManager *gr, double x, double y, double z, TextureType tex0)
     : objectBuffers(ob), shaderProgram(sp), grMan(gr), x(x), y(y), z(z), tex0(tex0), tex1(TextureType::None) {
@@ -92,6 +94,10 @@ void Entity::setRotationM(CvMatr32f m) {
 			matrixM[f][c] = m[f*3 + c];	//transposed
 		}
 	}*/
+	
+	for (int i = 0; i < 9; ++i)
+		if (isnan(m[i]))
+			return;
 
 	// Bez transpozycji
 	for (int f = 0; f < 3; ++f)

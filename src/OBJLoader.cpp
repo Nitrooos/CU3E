@@ -95,10 +95,15 @@ OBJLoader::OBJLoader(string source)
     //cout << "Done\n";
 }
 
+OBJLoader::OBJLoader(float *vertices, float *texCoords, float *normals,
+                     int vertexCount)
+    : vertices(vertices), texture(texCoords), normals(normals),
+      vertexCount(vertexCount) { }
+
 OBJLoader::~OBJLoader() {
-    delete vertices;
+    /*delete vertices;
     delete normals;
-    delete texture;
+    delete texture;*/
 }
 
 void OBJLoader::load() {

@@ -5,11 +5,9 @@
 #include <iomanip>
 #include "glm/gtc/matrix_transform.hpp"
 
-Camera::Camera(float x, float y, float z) : x(x), y(y), z(z), baselineY(y) {
+Camera::Camera(float x, float y, float z) : x(x), y(y), z(z) {
     updateMatrixV();
-    updateMatrixV();
-    updateMatrixV();
-    matrixP = perspective(45.0f, (float)App::getWindowWidth()/(float)App::getWindowHeight(), 1.0f, 100.0f);
+    matrixP = perspective(60.0f, (float)App::getWindowWidth()/(float)App::getWindowHeight(), 1.0f, 100.0f);
 }
 
 Camera::~Camera() { }
@@ -18,15 +16,10 @@ void Camera::setYPos(float y) {
     this->y = y;
 }
 
-void Camera::setBaselineY(float baselineY) {
-    this->baselineY = baselineY;
-}
-
 void Camera::movEye(float movX, float movY, float movZ) {
     x += movX;
     y += movY;
     z += movZ;
-    baselineY += movY;
 
     centerX += movX;
     centerY += movY;
@@ -46,7 +39,7 @@ void Camera::roll(float cenX, float cenY, float cenZ) {
 
 void Camera::roll(float changeLeftRight, float changeUpDown) {
     //cout << "centerX: " << centerX << "\tcenterY: " << centerY << "\tcenterZ: " << centerZ << "\n";
-
+	//cout << "changeLeftRight: " << changeLeftRight << "\t\tchangeUpDown: " << changeUpDown << "\n";
     paramTLeftRight += changeLeftRight;
     paramTUpDown += changeUpDown;
 
@@ -69,10 +62,6 @@ float Camera::getY() const {
 
 float Camera::getZ() const {
     return z;
-}
-
-float Camera::getBaselineY() const {
-    return baselineY;
 }
 
 float Camera::getXShift(float velocity) const {
@@ -98,4 +87,3 @@ void Camera::writeCoordinates() const {
 void Camera::updateMatrixV() {
     matrixV = lookAt(vec3(x, y, z), vec3(centerX, centerY, centerZ), vec3(0.0f,1.0f,0.0f));
 }
-

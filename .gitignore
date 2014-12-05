@@ -3,10 +3,17 @@ Makefile
 
 .project/
 
-data/
-
 debug/
 release/
 obj/
-models/
-data/
+data/textures/other
+
+Capturing/
+POSIT/
+screenshots/
+
+*.jpg
+
+RotationTest/
+
+data/config.cfg

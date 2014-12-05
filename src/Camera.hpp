@@ -14,7 +14,6 @@ class Camera {
 
         // przesuń oko kamery wzdłuż osi
         void setYPos(float y);
-        void setBaselineY(float baselineY);
         void movEye(float movX, float movY, float movZ);
         void roll(float cenX, float cenY, float cenZ);
         void roll(float changeLeftRight, float changeUpDown);
@@ -23,7 +22,6 @@ class Camera {
         float getX() const;
         float getY() const;
         float getZ() const;
-        float getBaselineY() const;
 
         // Zwraca przesunięcie x/z o jakie należy przenieść kamerę przy poruszaniu z daną prędkością
         float getXShift(float velocity) const;
@@ -38,12 +36,10 @@ class Camera {
         void updateAlfaAngle();
 
         // współrzędne oka kamery oraz punkt widzenia kamery (środek sceny)
-        float x{0.0}, y{0.0}, z{0.0},
+        float x, y, z,
                centerX{0.0}, centerY{0.0}, centerZ{0.0},
                paramTLeftRight{M_PI_2},
-               paramTUpDown{0.0},
-               baselineY;
-        float alfa{0.0};
+               paramTUpDown{0.0};
         mat4 matrixV, matrixP;
 };
 

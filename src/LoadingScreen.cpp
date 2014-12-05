@@ -44,7 +44,7 @@ void LoadingScreen::onInit() {
     progressBar.setPosition(Vector2f{0.0, 0.0});
     progressBar.setFillColor(Color{255, 255, 255, 127});
 
-    kastle.loadFromFile("data/loadingScreen/Kastle.png");
+    kastle.loadFromFile("data/loadingScreen/CU3E_logo.png");
 
     Vector2u kastleSize = kastle.getSize(),
              windowSize = window.getSize();

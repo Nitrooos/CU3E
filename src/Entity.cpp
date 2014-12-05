@@ -1,12 +1,16 @@
-#include <iostream>
 #include "Entity.hpp"
+#include "GraphicsManager.hpp"
 
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/string_cast.hpp"
 
-Entity::Entity(ObjectBuffers *ob, ShaderProgram *sp, double x, double y, double z, GLuint tex0, GLuint tex1)
-    : objectBuffers(ob), shaderProgram(sp), x(x), y(y), z(z), tex0(tex0), tex1(tex1) {
-        updateMatrixM();
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+
+Entity::Entity(ObjectBuffers *ob, ShaderProgram *sp, GraphicsManager *gr, double x, double y, double z, TextureType tex0)
+    : objectBuffers(ob), shaderProgram(sp), grMan(gr), x(x), y(y), z(z), tex0(tex0), tex1(TextureType::None) {
 }
 
 Entity::~Entity() { }
@@ -15,40 +19,23 @@ void Entity::onLoop() {
     // miejsce na kod na przyszłość
 }
 
-void Entity::onRender(const Camera &c, const Light &l, const Light &l1, const Material &m) {
+void Entity::onRender(const Camera &c) {
     shaderProgram->use();
 
     glUniformMatrix4fv(shaderProgram->getUniformLocation("P"), 1, false, value_ptr(c.getMatrixP()));
     glUniformMatrix4fv(shaderProgram->getUniformLocation("V"), 1, false, value_ptr(c.getMatrixV()));
     glUniformMatrix4fv(shaderProgram->getUniformLocation("M"), 1, false, value_ptr(matrixM));
 
-    glUniform4f(shaderProgram->getUniformLocation("Light0ambient"), l.ambient[0], l.ambient[1], l.ambient[2], l.ambient[3]);
-    glUniform4f(shaderProgram->getUniformLocation("Light0diffuse"), l.diffuse[0], l.diffuse[1], l.diffuse[2], l.diffuse[3]);
-    glUniform4f(shaderProgram->getUniformLocation("Light0specular"), l.specular[0], l.specular[1], l.specular[2], l.specular[3]);
-    glUniform4f(shaderProgram->getUniformLocation("Light0position"), l.position[0], l.position[1], l.position[2], l.position[3]);
-
-    glUniform4f(shaderProgram->getUniformLocation("Light01ambient"), l1.ambient[0], l1.ambient[1], l1.ambient[2], l1.ambient[3]);
-    glUniform4f(shaderProgram->getUniformLocation("Light01diffuse"), l1.diffuse[0], l1.diffuse[1], l1.diffuse[2], l1.diffuse[3]);
-    glUniform4f(shaderProgram->getUniformLocation("Light01specular"), l1.specular[0], l1.specular[1], l1.specular[2], l1.specular[3]);
-    glUniform4f(shaderProgram->getUniformLocation("Light01position"), c.getX(), c.getY(), c.getZ(), 1.0);
-
-    glUniform4f(shaderProgram->getUniformLocation("Material0emission"), m.emission[0], m.emission[1], m.emission[2], m.emission[3]);
-    glUniform4f(shaderProgram->getUniformLocation("Material0ambient"), m.ambient[0], m.ambient[1], m.ambient[2], m.ambient[3]);
-    glUniform4f(shaderProgram->getUniformLocation("Material0diffuse"), m.diffuse[0], m.diffuse[1], m.diffuse[2], m.diffuse[3]);
-    glUniform4f(shaderProgram->getUniformLocation("Material0specular"), m.specular[0], m.specular[1], m.specular[2], m.specular[3]);
-    glUniform1f(shaderProgram->getUniformLocation("Material0shininess"), m.shininess);
-
-    //glUniform4f(shaderProgram->getUniformLocation("lightPosition"), 0, 10, 40, 1);
-    glUniform4f(shaderProgram->getUniformLocation("lightPosition"), c.getX(), c.getY(), c.getZ(), 1);
+    glUniform4f(shaderProgram->getUniformLocation("lightPosition"), 0, 5, 5, 1);
 
     glUniform1i(shaderProgram->getUniformLocation("textureMap0"), 0);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tex0);
+    glBindTexture(GL_TEXTURE_2D, grMan->getTexture(tex0));
 
-    if (tex1 != 0) {
+    if (tex1 != TextureType::None) {
         glUniform1i(shaderProgram->getUniformLocation("textureMap1"), 1);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, tex1);
+        glBindTexture(GL_TEXTURE_2D, grMan->getTexture(tex1));
     }
 
     // Uaktywnienie VAO i tym samym uaktywnienie predefiniowanych w tym VAO powiązań slotów atrybutów z tablicami z danymi
@@ -85,7 +72,71 @@ void Entity::setAngle(double angle) {
     updateMatrixM();
 }
 
+void Entity::scale(double scale) {
+    this->scaleCoeff = scale;
+    updateMatrixM();
+}
+
+void Entity::setTexture(int num, TextureType tex) {
+	if (num == 0)
+		tex0 = tex;
+	else
+		tex1 = tex;
+}
+
+void Entity::setRotationM(CvMatr32f m) {
+	rotationM = mat4(1.0f);
+
+	// Transpozycja
+	/*mat4 trans = matrixM;
+	for (int f=0; f<3; f++) {
+		for (int c=0; c<3; c++) {
+			matrixM[f][c] = m[f*3 + c];	//transposed
+		}
+	}*/
+	
+	for (int i = 0; i < 9; ++i)
+		if (isnan(m[i]))
+			return;
+
+	// Bez transpozycji
+	for (int f = 0; f < 3; ++f)
+		for (int c = 0; c < 3; ++c)
+			rotationM[f][c] = m[f*3 + c];
+
+    matrixM = rotationM;
+}
+
+void Entity::setTranslationM(CvMatr32f m) {
+	translationM = mat4(1.0f);
+
+	translationM[3][0] = -2*m[0] + 2.5;
+	translationM[3][1] = -2*m[1] + 2.5;
+	translationM[3][2] = -1.5*m[2] + 7.5;
+
+	//cout << fixed << setw(15) << "\rTx:" << m[0] << "\t\tTy:" << m[1] << "\t\tTz:" << m[2];
+}
+
+TextureType Entity::getTexture(int num) const {
+	if (num == 0) return tex0;
+	else		  return tex1;
+}
+
 void Entity::updateMatrixM() {
-    matrixM = translate(mat4(1.0f), vec3(x, y, z));
-    matrixM = rotate(matrixM, angle, vec3(0.0f, 1.0f, 0.0f));
+	//matrixM = translationM*rotationM;
+    /*matrixM = glm::scale(mat4(1.0f), vec3(scaleCoeff, scaleCoeff, scaleCoeff));
+    matrixM = translate(matrixM, vec3(x, y, z));
+    matrixM = rotate(matrixM, angle, vec3(1.0f, 0.0f, 0.0f));*/
+
+    printMatrixM();
+}
+
+void Entity::printMatrixM() {
+    system("clear");
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j)
+            cout << fixed << setw(10) << matrixM[j][i] << "\t";
+        cout << "\n";
+    }
+    cout << "\n";
 }

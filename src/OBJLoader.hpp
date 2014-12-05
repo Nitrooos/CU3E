@@ -8,6 +8,8 @@ using namespace std;
 struct OBJLoader {
     public:
         OBJLoader(string source);
+        OBJLoader(float *vertices, float *texCoords, float *normals,
+                  int vertexCount);
         ~OBJLoader();
 
         void write() const;

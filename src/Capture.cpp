@@ -2,7 +2,7 @@
 #include "App.hpp"
 
 #define IMG_DIR "output/image_"
-#define FILTERS 5			//Number of detecting objects
+#define FILTERS 7			//Number of detecting objects
 #define AREA 10000			//Tolerance for vertices detection
 #define R_MUL 1.1			//Region of detection radious multiplier
 #define FOCAL_LENGTH 1000	//Focal length
@@ -218,8 +218,8 @@ int detecting(){
 			dM10 = oMoments.m10;
 			dArea = oMoments.m00;
 			if (dArea > AREA){
-				posX[i] = dM10 / dArea;
-				posY[i] = dM01 / dArea;
+				posX[i] = dM10 / dArea - App::getWindowWidth()/2;
+				posY[i] = App::getWindowHeight()/2 - dM01 / dArea;
 				#pragma omp critical
 				{
 					circle(imgToShow, Point((int)posX[i], (int)posY[i]), 10, Scalar(0, 255, 0), -1);
@@ -259,11 +259,13 @@ int detectOnce(CvMatr32f rotation, CvMatr32f translation){
 	static vector<CvPoint2D32f> srcImagePoints;
 	static vector<CvPoint3D32f> modelPoints;
 	static CvPOSITObject* positObject;
-	static double model[4][3] = {
+	static double model[6][3] = {
 		{ 0.0f, 0.0f, 0.0f },
 		{ 0.0f, 1.0f, 0.0f },
+		{ 1.0f, 0.0f, 0.0f },
 		{ 1.0f, 1.0f, 0.0f },
-		{ 1.0f, 0.0f, 1.0f },
+		{ 1.0f, 1.0f, 1.0f },
+		{ 0.0f, 0.0f, 1.0f },
 	};
 	static CvTermCriteria criteria = cvTermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 100, 1.0e-4f);
 
